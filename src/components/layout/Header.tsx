@@ -27,6 +27,9 @@ interface HeaderProps {
   onSessionRemainingChange?: (remainingMs: number) => void;
   sessionUsername?: string | null;
   onBackToDashboard?: () => void;
+  isTrainingPaused?: boolean;
+  onTogglePause?: () => void;
+  onEndTraining?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -42,6 +45,9 @@ export const Header: React.FC<HeaderProps> = ({
   onSessionRemainingChange,
   sessionUsername,
   onBackToDashboard,
+  isTrainingPaused,
+  onTogglePause,
+  onEndTraining,
 }) => {
   const [showLanding, setShowLanding] = useState(false);
   return (
@@ -77,6 +83,28 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Training Controls */}
+          {sessionExpiresAt != null && onTogglePause && onEndTraining && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onTogglePause}
+                className="px-3 py-1 text-sm font-medium rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
+                title={isTrainingPaused ? "Training fortsetzen" : "Training pausieren"}
+                aria-label={isTrainingPaused ? "Training fortsetzen" : "Training pausieren"}
+              >
+                {isTrainingPaused ? "Fortsetzen" : "Pause"}
+              </button>
+              <button
+                onClick={onEndTraining}
+                className="px-3 py-1 text-sm font-medium rounded-lg transition-colors bg-red-200 dark:bg-red-900 hover:bg-red-300 dark:hover:bg-red-800 text-red-900 dark:text-red-100"
+                title="Training beenden"
+                aria-label="Training beenden"
+              >
+                Beenden
+              </button>
+            </div>
+          )}
+
           {sessionExpiresAt != null && (
             <SessionTimer
               expiresAt={sessionExpiresAt}

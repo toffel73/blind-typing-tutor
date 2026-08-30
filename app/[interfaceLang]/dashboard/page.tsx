@@ -200,7 +200,7 @@ export default function DashboardPage({ params }: PageProps) {
               ⚙️ Einstellungen
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Während des Trainings können Sie Sprache, Layout, Design und mehr anpassen.
+              Ihr Trainingsfortschritt wird automatisch gespeichert.
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-500">
               Rolle: <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">

@@ -16,6 +16,11 @@ import {
 import {
   getTrainingSessionData,
   getTrainingSessionRemainingMs,
+  pauseTrainingSession,
+  resumeTrainingSession,
+  clearTrainingSession,
+  completeTrainingSession,
+  isTrainingSessionPaused,
 } from "@/utils/trainingSession";
 
 interface AppContentProps {
@@ -44,6 +49,14 @@ export function AppContent({ params }: AppContentProps) {
   const [sessionRemainingMs, setSessionRemainingMs] = useState<number | null>(null);
   const [sessionUsername, setSessionUsername] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [isTrainingPaused, setIsTrainingPaused] = useState(false);
+  const [showEndDialog, setShowEndDialog] = useState(false);
+  const [completionData, setCompletionData] = useState<{
+    duration: number;
+    wpm: number;
+    accuracy: number;
+    errors: number;
+  } | null>(null);
 
   // Initialize GA
   useEffect(() => {
@@ -68,9 +81,9 @@ export function AppContent({ params }: AppContentProps) {
         // Auth session is valid
         setSessionUsername(typeof data.user?.username === "string" ? data.user.username : null);
 
-        // Check for active training session
+        // Check for active training session (including paused)
         const trainingSessionData = getTrainingSessionData();
-        if (trainingSessionData.status === "active" && trainingSessionData.expiresAt) {
+        if ((trainingSessionData.status === "active" || trainingSessionData.status === "paused") && trainingSessionData.expiresAt) {
           setTrainingExpiresAt(trainingSessionData.expiresAt);
           setSessionRemainingMs(getTrainingSessionRemainingMs());
           setSessionChecked(true);
@@ -83,6 +96,34 @@ export function AppContent({ params }: AppContentProps) {
         router.replace("/login");
       });
   }, [router, params.interfaceLang]);
+
+  // Handle pause/resume toggle
+  const handleTogglePause = () => {
+    if (isTrainingPaused) {
+      resumeTrainingSession();
+      setIsTrainingPaused(false);
+    } else {
+      pauseTrainingSession();
+      setIsTrainingPaused(true);
+    }
+  };
+
+  // Handle end training with confirmation
+  const handleEndTraining = () => {
+    setShowEndDialog(true);
+  };
+
+  const confirmEndTraining = () => {
+    clearTrainingSession();
+    router.replace(`/${params.interfaceLang}/dashboard`);
+  };
+
+  // Check if paused on mount
+  useEffect(() => {
+    if (isTrainingSessionPaused()) {
+      setIsTrainingPaused(true);
+    }
+  }, []);
 
   const sessionPhaseMeta =
     sessionRemainingMs != null ? getSessionTrainingPhaseMeta(sessionRemainingMs) : null;
@@ -171,6 +212,9 @@ export function AppContent({ params }: AppContentProps) {
           }
           router.replace(`/${params.interfaceLang}/dashboard`);
         }}
+        isTrainingPaused={isTrainingPaused}
+        onTogglePause={handleTogglePause}
+        onEndTraining={handleEndTraining}
       />
 
       <main className="grow pt-20">
@@ -193,8 +237,46 @@ export function AppContent({ params }: AppContentProps) {
           translations={t}
           sessionTrainingPhase={sessionPhaseMeta?.phase}
           sessionTrainingPhaseLabel={sessionPhaseMeta?.display}
+          isTrainingPaused={isTrainingPaused}
         />
       </main>
+
+      {/* End Training Confirmation Dialog */}
+      {showEndDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-sm">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Training beenden?
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Möchtest du diese Trainingseinheit wirklich beenden?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowEndDialog(false)}
+                className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Weiter trainieren
+              </button>
+              <button
+                onClick={confirmEndTraining}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+              >
+                Training beenden
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pause Indicator */}
+      {isTrainingPaused && (
+        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-40">
+          <div className="bg-gray-900/80 dark:bg-gray-900/90 text-white px-8 py-4 rounded-lg text-center">
+            <p className="text-2xl font-bold">Training pausiert</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

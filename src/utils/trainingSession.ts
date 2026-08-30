@@ -1,11 +1,13 @@
 import { TRAINING_SESSION_TTL_MS } from "@/config/auth";
 
-export type TrainingSessionStatus = "not-started" | "active" | "completed";
+export type TrainingSessionStatus = "not-started" | "active" | "paused" | "completed";
 
 export interface TrainingSessionData {
   status: TrainingSessionStatus;
   startedAt: number | null;
   expiresAt: number | null;
+  pausedAt: number | null; // Time when training was paused
+  totalPausedMs: number; // Total time spent in paused state
 }
 
 const STORAGE_KEY = "training_session";
@@ -15,18 +17,18 @@ const STORAGE_KEY = "training_session";
  */
 export function getTrainingSessionData(): TrainingSessionData {
   if (typeof window === "undefined") {
-    return { status: "not-started", startedAt: null, expiresAt: null };
+    return { status: "not-started", startedAt: null, expiresAt: null, pausedAt: null, totalPausedMs: 0 };
   }
 
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (!stored) {
-      return { status: "not-started", startedAt: null, expiresAt: null };
+      return { status: "not-started", startedAt: null, expiresAt: null, pausedAt: null, totalPausedMs: 0 };
     }
     const parsed = JSON.parse(stored) as TrainingSessionData;
     return parsed;
   } catch {
-    return { status: "not-started", startedAt: null, expiresAt: null };
+    return { status: "not-started", startedAt: null, expiresAt: null, pausedAt: null, totalPausedMs: 0 };
   }
 }
 
@@ -54,9 +56,52 @@ export function startTrainingSession(): TrainingSessionData {
     status: "active",
     startedAt: now,
     expiresAt: now + TRAINING_SESSION_TTL_MS,
+    pausedAt: null,
+    totalPausedMs: 0,
   };
   saveTrainingSessionData(data);
   return data;
+}
+
+/**
+ * Pause the current training session
+ */
+export function pauseTrainingSession(): TrainingSessionData {
+  const data = getTrainingSessionData();
+  if (data.status !== "active" || !data.expiresAt) {
+    return data;
+  }
+
+  const pausedData: TrainingSessionData = {
+    ...data,
+    status: "paused",
+    pausedAt: Date.now(),
+  };
+  saveTrainingSessionData(pausedData);
+  return pausedData;
+}
+
+/**
+ * Resume the current training session
+ */
+export function resumeTrainingSession(): TrainingSessionData {
+  const data = getTrainingSessionData();
+  if (data.status !== "paused" || !data.pausedAt || !data.expiresAt) {
+    return data;
+  }
+
+  const now = Date.now();
+  const pauseDuration = now - data.pausedAt;
+  
+  const resumedData: TrainingSessionData = {
+    ...data,
+    status: "active",
+    pausedAt: null,
+    expiresAt: data.expiresAt + pauseDuration, // Extend expiry by pause duration
+    totalPausedMs: data.totalPausedMs + pauseDuration,
+  };
+  saveTrainingSessionData(resumedData);
+  return resumedData;
 }
 
 /**
@@ -67,6 +112,8 @@ export function completeTrainingSession(): TrainingSessionData {
     status: "completed",
     startedAt: null,
     expiresAt: null,
+    pausedAt: null,
+    totalPausedMs: 0,
   };
   saveTrainingSessionData(data);
   return data;
@@ -80,6 +127,8 @@ export function clearTrainingSession(): TrainingSessionData {
     status: "not-started",
     startedAt: null,
     expiresAt: null,
+    pausedAt: null,
+    totalPausedMs: 0,
   };
   saveTrainingSessionData(data);
   return data;
@@ -90,11 +139,22 @@ export function clearTrainingSession(): TrainingSessionData {
  */
 export function getTrainingSessionRemainingMs(): number {
   const data = getTrainingSessionData();
-  if (data.status !== "active" || !data.expiresAt) {
+  if (!data.expiresAt) {
     return 0;
   }
-  const remaining = data.expiresAt - Date.now();
-  return Math.min(Math.max(remaining, 0), TRAINING_SESSION_TTL_MS);
+
+  if (data.status === "paused") {
+    // If paused, return the remaining time at the pause point
+    const remaining = data.expiresAt - (data.pausedAt ?? Date.now());
+    return Math.min(Math.max(remaining, 0), TRAINING_SESSION_TTL_MS);
+  }
+
+  if (data.status === "active") {
+    const remaining = data.expiresAt - Date.now();
+    return Math.min(Math.max(remaining, 0), TRAINING_SESSION_TTL_MS);
+  }
+
+  return 0;
 }
 
 /**
@@ -110,11 +170,19 @@ export function isTrainingSessionActive(): boolean {
 }
 
 /**
+ * Check if a training session is currently paused
+ */
+export function isTrainingSessionPaused(): boolean {
+  const data = getTrainingSessionData();
+  return data.status === "paused";
+}
+
+/**
  * Get the expiry timestamp of the current active training session
  */
 export function getTrainingSessionExpiresAt(): number | null {
   const data = getTrainingSessionData();
-  if (data.status === "active" && data.expiresAt) {
+  if ((data.status === "active" || data.status === "paused") && data.expiresAt) {
     return data.expiresAt;
   }
   return null;
