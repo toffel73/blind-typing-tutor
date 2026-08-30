@@ -165,6 +165,12 @@ export function AppContent({ params }: AppContentProps) {
         sessionExpiresAt={trainingExpiresAt}
         onSessionRemainingChange={setSessionRemainingMs}
         sessionUsername={sessionUsername}
+        onBackToDashboard={() => {
+          if (typeof window !== "undefined") {
+            window.localStorage.removeItem("training_session");
+          }
+          router.replace(`/${params.interfaceLang}/dashboard`);
+        }}
       />
 
       <main className="grow pt-20">

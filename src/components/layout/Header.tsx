@@ -6,6 +6,7 @@ import {
   Moon,
   Sun,
   Info,
+  ArrowLeft,
 } from "lucide-react";
 import type { InterfaceLanguage } from "../../translations";
 import type { ContentType } from "../../utils/url";
@@ -25,6 +26,7 @@ interface HeaderProps {
   sessionExpiresAt?: number | null;
   onSessionRemainingChange?: (remainingMs: number) => void;
   sessionUsername?: string | null;
+  onBackToDashboard?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -39,12 +41,23 @@ export const Header: React.FC<HeaderProps> = ({
   sessionExpiresAt,
   onSessionRemainingChange,
   sessionUsername,
+  onBackToDashboard,
 }) => {
   const [showLanding, setShowLanding] = useState(false);
   return (
     <>
       <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm px-6 py-4 flex justify-between items-center fixed w-full top-0 z-50 transition-colors duration-300">
         <div className="flex items-center gap-4">
+          {onBackToDashboard && (
+            <button
+              onClick={onBackToDashboard}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-900 dark:text-white transition-colors"
+              title="Zurück zum Dashboard"
+              aria-label="Zurück zum Dashboard"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
           <h1
             data-testid="app-title"
             className="text-xl font-bold text-gray-900 dark:text-white whitespace-nowrap transition-colors flex items-center gap-2 font-mono"
