@@ -11,9 +11,12 @@ import { MobileMessage } from "@/components/layout/MobileMessage";
 import type { UserRole } from "@/types/auth";
 import { initGA, trackPageView } from "@/utils/analytics";
 import {
-  getSessionRemainingMs,
   getSessionTrainingPhaseMeta,
 } from "@/utils/sessionTraining";
+import {
+  getTrainingSessionData,
+  getTrainingSessionRemainingMs,
+} from "@/utils/trainingSession";
 
 interface AppContentProps {
   params: {
@@ -37,7 +40,7 @@ export function AppContent({ params }: AppContentProps) {
   const router = useRouter();
   const settings = useAppSettings(params);
   const t = translations[settings.interfaceLanguage];
-  const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
+  const [trainingExpiresAt, setTrainingExpiresAt] = useState<number | null>(null);
   const [sessionRemainingMs, setSessionRemainingMs] = useState<number | null>(null);
   const [sessionUsername, setSessionUsername] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -52,46 +55,56 @@ export function AppContent({ params }: AppContentProps) {
     trackPageView(window.location.pathname, `${t.title} - ${settings.mode}`);
   }, [settings.interfaceLanguage, settings.mode, t.title]);
 
-  // Check session on mount; redirect if not authenticated or expired
+  // Check session and training session on mount
   useEffect(() => {
     void fetch("/api/auth/session", { cache: "no-store" })
       .then((res) => res.json() as Promise<SessionData>)
       .then((data) => {
         if (!data.authenticated || typeof data.expiresAt !== "number") {
           router.replace("/login");
-        } else {
-          setSessionExpiresAt(data.expiresAt);
-          setSessionRemainingMs(getSessionRemainingMs(data.expiresAt));
-          setSessionUsername(typeof data.user?.username === "string" ? data.user.username : null);
+          return;
+        }
+
+        // Auth session is valid
+        setSessionUsername(typeof data.user?.username === "string" ? data.user.username : null);
+
+        // Check for active training session
+        const trainingSessionData = getTrainingSessionData();
+        if (trainingSessionData.status === "active" && trainingSessionData.expiresAt) {
+          setTrainingExpiresAt(trainingSessionData.expiresAt);
+          setSessionRemainingMs(getTrainingSessionRemainingMs());
           setSessionChecked(true);
+        } else {
+          // No active training session - redirect to dashboard
+          router.replace(`/${params.interfaceLang}/dashboard`);
         }
       })
       .catch(() => {
         router.replace("/login");
       });
-  }, [router]);
+  }, [router, params.interfaceLang]);
 
   const sessionPhaseMeta =
     sessionRemainingMs != null ? getSessionTrainingPhaseMeta(sessionRemainingMs) : null;
   const phaseCompletionSessionRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!sessionExpiresAt || !sessionPhaseMeta) {
+    if (!trainingExpiresAt || !sessionPhaseMeta) {
       return;
     }
     if (sessionPhaseMeta.phase === "phase1") {
       return;
     }
-    if (phaseCompletionSessionRef.current === sessionExpiresAt) {
+    if (phaseCompletionSessionRef.current === trainingExpiresAt) {
       return;
     }
 
-    phaseCompletionSessionRef.current = sessionExpiresAt;
+    phaseCompletionSessionRef.current = trainingExpiresAt;
     void fetch("/api/training/progress/complete-keyboard-phase", {
       method: "POST",
       cache: "no-store",
     }).catch(() => undefined);
-  }, [sessionExpiresAt, sessionPhaseMeta]);
+  }, [trainingExpiresAt, sessionPhaseMeta]);
 
   // Mobile detection
   const isMobile = useIsMobile();
@@ -128,7 +141,7 @@ export function AppContent({ params }: AppContentProps) {
         setDarkMode={settings.setDarkMode}
         studyLang={params.studyLang}
         learningMode={params.learningMode as "words" | "phrases" | "custom"}
-        sessionExpiresAt={sessionExpiresAt}
+        sessionExpiresAt={trainingExpiresAt}
         onSessionRemainingChange={setSessionRemainingMs}
         sessionUsername={sessionUsername}
       />

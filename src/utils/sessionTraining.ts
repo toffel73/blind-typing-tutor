@@ -1,4 +1,4 @@
-import { SESSION_TTL_MS } from "@/config/auth";
+import { TRAINING_SESSION_TTL_MS } from "@/config/auth";
 
 export type SessionTrainingPhase = "phase1" | "phase2" | "phase3";
 
@@ -13,7 +13,7 @@ const PHASE_2_THRESHOLD_MS = 200 * 1000;
 
 export function getSessionRemainingMs(expiresAt: number) {
   const remainingMs = new Date(expiresAt).getTime() - Date.now();
-  return Math.min(Math.max(remainingMs, 0), SESSION_TTL_MS);
+  return Math.min(Math.max(remainingMs, 0), TRAINING_SESSION_TTL_MS);
 }
 
 export function getSessionTrainingPhase(remainingMs: number): SessionTrainingPhase {

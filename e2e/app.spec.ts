@@ -461,7 +461,7 @@ test.describe("Blind Typing Tutor E2E Tests", () => {
 
     // Wait for the textarea to disappear and dropdown to revert
     await page.waitForFunction(() => {
-      const el = document.querySelector('[data-testid="custom-text-input"]');
+      const el = document.querySelector('[data-testid="custom-text-input"]') as HTMLElement | null;
       const select = document.querySelector('[data-testid="learning-mode-selector"]') as HTMLSelectElement;
       return (!el || !el.offsetParent) && select && select.value === "practice";
     }, { timeout: 5000 });
