@@ -37,6 +37,11 @@ export default function DashboardPage({ params }: PageProps) {
   // Check session
   useEffect(() => {
     const checkSession = async () => {
+      // Clear any stale training sessions
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("training_session");
+      }
+
       try {
         const response = await fetch("/api/auth/session", { cache: "no-store" });
         const data = (await response.json()) as SessionData;

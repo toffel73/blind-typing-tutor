@@ -106,6 +106,27 @@ export function AppContent({ params }: AppContentProps) {
     }).catch(() => undefined);
   }, [trainingExpiresAt, sessionPhaseMeta]);
 
+  // Monitor training session expiry and redirect to dashboard when it expires
+  useEffect(() => {
+    if (!trainingExpiresAt) {
+      return;
+    }
+
+    const checkExpiry = () => {
+      const now = Date.now();
+      if (now >= trainingExpiresAt) {
+        // Training session has expired, clear it and redirect to dashboard
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("training_session");
+        }
+        router.replace(`/${params.interfaceLang}/dashboard`);
+      }
+    };
+
+    const interval = setInterval(checkExpiry, 1000);
+    return () => clearInterval(interval);
+  }, [trainingExpiresAt, router, params.interfaceLang]);
+
   // Mobile detection
   const isMobile = useIsMobile();
 
