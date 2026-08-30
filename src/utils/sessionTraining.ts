@@ -1,4 +1,4 @@
-import { TRAINING_SESSION_TTL_MS } from "@/config/auth";
+import { TRAINING_PHASE_DURATION_SECONDS, TRAINING_SESSION_TTL_MS } from "@/config/auth";
 
 export type SessionTrainingPhase = "phase1" | "phase2" | "phase3";
 
@@ -8,8 +8,12 @@ export interface SessionTrainingPhaseMeta {
   display: string;
 }
 
-const PHASE_1_THRESHOLD_MS = 400 * 1000;
-const PHASE_2_THRESHOLD_MS = 200 * 1000;
+// Phase boundaries derived from central config so they stay in sync automatically.
+// Phase 1: top third of training time
+// Phase 2: middle third
+// Phase 3: bottom third (remaining ≤ PHASE_2_THRESHOLD_MS)
+const PHASE_1_THRESHOLD_MS = TRAINING_PHASE_DURATION_SECONDS * 2 * 1000; // 2 phases worth remaining
+const PHASE_2_THRESHOLD_MS = TRAINING_PHASE_DURATION_SECONDS * 1 * 1000; // 1 phase worth remaining
 
 export function getSessionRemainingMs(expiresAt: number) {
   const remainingMs = new Date(expiresAt).getTime() - Date.now();

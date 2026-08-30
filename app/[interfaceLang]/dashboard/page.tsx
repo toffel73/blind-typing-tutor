@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserRole } from "@/types/auth";
 import { Keyboard as KeyboardIcon } from "lucide-react";
+import { startTrainingSession } from "@/utils/trainingSession";
+import { TRAINING_PHASE_DURATION_SECONDS } from "@/config/auth";
 
 interface SessionData {
   authenticated: boolean;
@@ -103,17 +105,7 @@ export default function DashboardPage({ params }: PageProps) {
 
   const handleStartTraining = () => {
     if (interfaceLang && sessionData?.user) {
-      // Start training session in localStorage
-      const now = Date.now();
-      const expiresAt = now + 10 * 60 * 1000; // 10 minutes
-      const trainingSession = {
-        status: "active",
-        startedAt: now,
-        expiresAt: expiresAt,
-      };
-      window.localStorage.setItem("training_session", JSON.stringify(trainingSession));
-
-      // Redirect to training page
+      startTrainingSession();
       router.push(`/${interfaceLang}/${interfaceLang}/words`);
     }
   };
@@ -180,10 +172,10 @@ export default function DashboardPage({ params }: PageProps) {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-colors duration-300">
           <div className="mb-6">
             <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
-              10-Minuten Training
+              {TRAINING_PHASE_DURATION_SECONDS * 3 / 60}-Minuten Training
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              Starten Sie eine 10-minütige Trainingseinheit mit drei Phasen:
+              Starten Sie eine {TRAINING_PHASE_DURATION_SECONDS * 3 / 60}-minütige Trainingseinheit mit drei Phasen:
             </p>
           </div>
 

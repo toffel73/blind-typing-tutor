@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { TRAINING_SESSION_TTL_MS } from "@/config/auth";
 import { getTrainingSessionRemainingMs } from "@/utils/trainingSession";
 
@@ -19,14 +18,12 @@ function formatTime(ms: number): string {
 }
 
 export function SessionTimer({ expiresAt, isPaused, onRemainingChange }: SessionTimerProps) {
-  const router = useRouter();
   const [remaining, setRemaining] = useState(() => {
     const remainingMs = getTrainingSessionRemainingMs();
     return remainingMs > 0
       ? remainingMs
       : Math.min(Math.max(new Date(expiresAt).getTime() - Date.now(), 0), TRAINING_SESSION_TTL_MS);
   });
-  const loggedOutRef = useRef(false);
 
   useEffect(() => {
     const tick = () => {
@@ -34,22 +31,14 @@ export function SessionTimer({ expiresAt, isPaused, onRemainingChange }: Session
       const ms = getTrainingSessionRemainingMs();
       setRemaining(ms);
       onRemainingChange?.(ms);
-
-      if (ms <= 0 && !loggedOutRef.current) {
-        loggedOutRef.current = true;
-        void fetch("/api/auth/logout", { method: "POST" })
-          .catch(() => undefined)
-          .finally(() => {
-            router.replace("/login");
-          });
-      }
+      // Training expiry is handled by AppContent — no logout here.
     };
 
     tick();
-    // Keep ticking even when paused so we can detect session expiry and emit 0
+    // Keep ticking even when paused so we can emit 0 and AppContent can react
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [expiresAt, isPaused, onRemainingChange, router]);
+  }, [expiresAt, isPaused, onRemainingChange]);
 
   const isExpired = remaining <= 0;
 

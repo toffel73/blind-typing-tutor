@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Game } from "@/components/Game";
 import { translations } from "@/translations";
@@ -39,6 +39,12 @@ interface SessionData {
   expiresAt?: number;
 }
 
+interface TrainingStats {
+  wpm: number;
+  accuracy: number;
+  errors: number;
+}
+
 export function AppContent({ params }: AppContentProps) {
   const router = useRouter();
   const settings = useAppSettings(params);
@@ -49,6 +55,15 @@ export function AppContent({ params }: AppContentProps) {
   const [sessionChecked, setSessionChecked] = useState(false);
   const [isTrainingPaused, setIsTrainingPaused] = useState(false);
   const [showEndDialog, setShowEndDialog] = useState(false);
+
+  // Live stats kept in a ref so we always have the latest value at training-end time
+  const liveStatsRef = useRef<TrainingStats>({ wpm: 0, accuracy: 100, errors: 0 });
+  const handleStatsChange = useCallback((stats: TrainingStats) => {
+    liveStatsRef.current = stats;
+  }, []);
+
+  // Guard against saving the session twice (timer expiry + concurrent click)
+  const sessionEndedRef = useRef(false);
 
   // Initialize GA
   useEffect(() => {
@@ -70,25 +85,60 @@ export function AppContent({ params }: AppContentProps) {
           return;
         }
 
-        // Auth session is valid
         setSessionUsername(typeof data.user?.username === "string" ? data.user.username : null);
 
-        // Check for active training session (including paused)
         const trainingSessionData = getTrainingSessionData();
         if ((trainingSessionData.status === "active" || trainingSessionData.status === "paused") && trainingSessionData.expiresAt) {
           setTrainingExpiresAt(trainingSessionData.expiresAt);
           setSessionRemainingMs(getTrainingSessionRemainingMs());
-          // Restore paused state on reload
           setIsTrainingPaused(trainingSessionData.status === "paused");
           setSessionChecked(true);
         } else {
-          // No active training session - redirect to dashboard
           router.replace(`/${params.interfaceLang}/dashboard`);
         }
       })
       .catch(() => {
         router.replace("/login");
       });
+  }, [router, params.interfaceLang]);
+
+  /**
+   * Finish the training: persist stats + advance lesson + go to dashboard.
+   * idempotent — the ref guard prevents double saves.
+   */
+  const finishTraining = useCallback((isNaturalEnd: boolean) => {
+    if (sessionEndedRef.current) return;
+    sessionEndedRef.current = true;
+
+    const data = getTrainingSessionData();
+    const now = Date.now();
+    const startedAt = data.startedAt ?? now;
+    const totalPausedMs = data.totalPausedMs ?? 0;
+    const endedAt = now;
+    const activeLearningTimeMs = Math.max(0, endedAt - startedAt - totalPausedMs);
+    const currentExpiresAt = data.expiresAt;
+
+    const { wpm, accuracy, errors } = liveStatsRef.current;
+
+    clearTrainingSession();
+
+    // Persist statistics
+    void fetch("/api/training/end-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ startedAt, endedAt, activeLearningTimeMs, wpm, accuracy, errors }),
+    }).catch(() => undefined);
+
+    // Advance lesson only if the training ran to the natural end (all phases)
+    if (isNaturalEnd && currentExpiresAt) {
+      void fetch("/api/training/progress/complete-keyboard-phase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trainingExpiresAt: currentExpiresAt }),
+      }).catch(() => undefined);
+    }
+
+    router.replace(`/${params.interfaceLang}/dashboard`);
   }, [router, params.interfaceLang]);
 
   // Handle pause/resume toggle
@@ -105,21 +155,20 @@ export function AppContent({ params }: AppContentProps) {
     }
   };
 
-  // Handle end training with confirmation
+  // Handle end training with confirmation (manual early end)
   const handleEndTraining = () => {
     setShowEndDialog(true);
   };
 
   const confirmEndTraining = () => {
-    clearTrainingSession();
-    router.replace(`/${params.interfaceLang}/dashboard`);
+    finishTraining(false);
   };
 
   const sessionPhaseMeta =
     sessionRemainingMs != null ? getSessionTrainingPhaseMeta(sessionRemainingMs) : null;
   const phaseCompletionSessionRef = useRef<number | null>(null);
 
-  // Handle phase 1 to phase 2 transition
+  // Handle phase 1 to phase 2 transition — advance keyboard lesson mid-training
   useEffect(() => {
     if (!trainingExpiresAt || !sessionPhaseMeta) {
       return;
@@ -134,35 +183,31 @@ export function AppContent({ params }: AppContentProps) {
     phaseCompletionSessionRef.current = trainingExpiresAt;
     void fetch("/api/training/progress/complete-keyboard-phase", {
       method: "POST",
-      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trainingExpiresAt }),
     }).catch(() => undefined);
   }, [trainingExpiresAt, sessionPhaseMeta]);
 
-  // Monitor training session expiry and redirect to dashboard when it expires
+  // Monitor training session expiry — save stats and redirect (no logout)
   useEffect(() => {
     if (!trainingExpiresAt) {
       return;
     }
 
     const checkExpiry = () => {
-      const now = Date.now();
-      if (now >= trainingExpiresAt) {
-        // Training session has expired, clear it and redirect to dashboard
-        if (typeof window !== "undefined") {
-          window.localStorage.removeItem("training_session");
-        }
-        router.replace(`/${params.interfaceLang}/dashboard`);
+      const remaining = getTrainingSessionRemainingMs();
+      if (remaining <= 0 && !sessionEndedRef.current) {
+        finishTraining(true);
       }
     };
 
     const interval = setInterval(checkExpiry, 1000);
     return () => clearInterval(interval);
-  }, [trainingExpiresAt, router, params.interfaceLang]);
+  }, [trainingExpiresAt, finishTraining]);
 
   // Mobile detection
   const isMobile = useIsMobile();
 
-  // Don't render until session is verified to prevent flash of trainer for expired sessions
   if (!sessionChecked) {
     return null;
   }
@@ -198,10 +243,7 @@ export function AppContent({ params }: AppContentProps) {
         onSessionRemainingChange={setSessionRemainingMs}
         sessionUsername={sessionUsername}
         onBackToDashboard={() => {
-          if (typeof window !== "undefined") {
-            window.localStorage.removeItem("training_session");
-          }
-          router.replace(`/${params.interfaceLang}/dashboard`);
+          finishTraining(false);
         }}
         isTrainingPaused={isTrainingPaused}
         onTogglePause={handleTogglePause}
@@ -229,6 +271,7 @@ export function AppContent({ params }: AppContentProps) {
           sessionTrainingPhase={sessionPhaseMeta?.phase}
           sessionTrainingPhaseLabel={sessionPhaseMeta?.display}
           isTrainingPaused={isTrainingPaused}
+          onStatsChange={handleStatsChange}
         />
       </main>
 
@@ -271,3 +314,4 @@ export function AppContent({ params }: AppContentProps) {
     </div>
   );
 }
+
