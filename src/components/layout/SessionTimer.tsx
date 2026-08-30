@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { TRAINING_SESSION_TTL_MS } from "@/config/auth";
+import { getTrainingSessionRemainingMs } from "@/utils/trainingSession";
 
 interface SessionTimerProps {
   expiresAt: number;
+  isPaused?: boolean;
   onRemainingChange?: (remainingMs: number) => void;
 }
 
@@ -16,35 +17,28 @@ function formatTime(ms: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-export function SessionTimer({ expiresAt, onRemainingChange }: SessionTimerProps) {
-  const router = useRouter();
+export function SessionTimer({ expiresAt, isPaused, onRemainingChange }: SessionTimerProps) {
   const [remaining, setRemaining] = useState(() => {
-    const remainingMs = new Date(expiresAt).getTime() - Date.now();
-    return Math.min(Math.max(remainingMs, 0), TRAINING_SESSION_TTL_MS);
+    const remainingMs = getTrainingSessionRemainingMs();
+    return remainingMs > 0
+      ? remainingMs
+      : Math.min(Math.max(new Date(expiresAt).getTime() - Date.now(), 0), TRAINING_SESSION_TTL_MS);
   });
-  const loggedOutRef = useRef(false);
 
   useEffect(() => {
     const tick = () => {
-      const remainingMs = new Date(expiresAt).getTime() - Date.now();
-      const ms = Math.min(Math.max(remainingMs, 0), TRAINING_SESSION_TTL_MS);
+      // Always read remaining from the session store so pause is respected
+      const ms = getTrainingSessionRemainingMs();
       setRemaining(ms);
       onRemainingChange?.(ms);
-
-      if (ms <= 0 && !loggedOutRef.current) {
-        loggedOutRef.current = true;
-        void fetch("/api/auth/logout", { method: "POST" })
-          .catch(() => undefined)
-          .finally(() => {
-            router.replace("/login");
-          });
-      }
+      // Training expiry is handled by AppContent — no logout here.
     };
 
     tick();
+    // Keep ticking even when paused so we can emit 0 and AppContent can react
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [expiresAt, onRemainingChange, router]);
+  }, [expiresAt, isPaused, onRemainingChange]);
 
   const isExpired = remaining <= 0;
 

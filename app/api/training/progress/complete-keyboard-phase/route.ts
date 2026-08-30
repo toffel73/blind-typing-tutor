@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { completeKeyboardPhaseForSession, getSessionUser } from "@/server/authService";
-import { getSessionRemainingMs, getSessionTrainingPhase } from "@/utils/sessionTraining";
 
 export const runtime = "nodejs";
 
@@ -15,14 +14,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const currentPhase = getSessionTrainingPhase(getSessionRemainingMs(sessionUser.expiresAt));
-  if (currentPhase === "phase1") {
+  let trainingExpiresAt: number | undefined;
+  try {
+    const body = (await request.json()) as { trainingExpiresAt?: number };
+    if (typeof body.trainingExpiresAt === "number") {
+      trainingExpiresAt = body.trainingExpiresAt;
+    }
+  } catch {
+    // body is optional
+  }
+
+  if (!trainingExpiresAt) {
     return NextResponse.json(
-      { ok: false, message: "Phase 1 ist noch nicht abgeschlossen." },
+      { ok: false, message: "trainingExpiresAt fehlt." },
       { status: 400 }
     );
   }
 
-  const result = completeKeyboardPhaseForSession(sessionUser.id, sessionUser.expiresAt);
+  const result = completeKeyboardPhaseForSession(sessionUser.id, trainingExpiresAt);
   return NextResponse.json(result);
 }

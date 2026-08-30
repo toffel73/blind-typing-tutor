@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserRole } from "@/types/auth";
 import { Keyboard as KeyboardIcon } from "lucide-react";
+import { startTrainingSession } from "@/utils/trainingSession";
+import { TRAINING_DURATION_MINUTES } from "@/config/auth";
 
 interface SessionData {
   authenticated: boolean;
@@ -18,6 +20,9 @@ interface SessionData {
 interface ProgressData {
   currentKeyboardLesson: number;
   lessonTitle: string;
+  totalLessons: number;
+  nextLessonId: number | null;
+  nextLessonTitle: string | null;
 }
 
 interface StatisticsData {
@@ -100,17 +105,7 @@ export default function DashboardPage({ params }: PageProps) {
 
   const handleStartTraining = () => {
     if (interfaceLang && sessionData?.user) {
-      // Start training session in localStorage
-      const now = Date.now();
-      const expiresAt = now + 10 * 60 * 1000; // 10 minutes
-      const trainingSession = {
-        status: "active",
-        startedAt: now,
-        expiresAt: expiresAt,
-      };
-      window.localStorage.setItem("training_session", JSON.stringify(trainingSession));
-
-      // Redirect to training page
+      startTrainingSession();
       router.push(`/${interfaceLang}/${interfaceLang}/words`);
     }
   };
@@ -142,6 +137,11 @@ export default function DashboardPage({ params }: PageProps) {
     );
   }
 
+  const totalLessons = progressData?.totalLessons ?? TOTAL_LESSONS;
+  const completedLessons = progressData ? progressData.currentKeyboardLesson - 1 : 0;
+  const remainingLessons = progressData ? totalLessons - progressData.currentKeyboardLesson : 0;
+  const progressPercent = progressData ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       {/* Header */}
@@ -172,10 +172,10 @@ export default function DashboardPage({ params }: PageProps) {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-colors duration-300">
           <div className="mb-6">
             <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
-              10-Minuten Training
+              {TRAINING_DURATION_MINUTES}-Minuten Training
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              Starten Sie eine 10-minütige Trainingseinheit mit drei Phasen:
+              Starten Sie eine {TRAINING_DURATION_MINUTES}-minütige Trainingseinheit mit drei Phasen:
             </p>
           </div>
 
@@ -219,31 +219,53 @@ export default function DashboardPage({ params }: PageProps) {
 
         {/* Progress Card */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-300">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-            📊 Ihr Lernfortschritt
+          <h3 className="text-xs font-bold tracking-widest uppercase text-gray-500 dark:text-gray-400 mb-4">
+            Ihr Lernfortschritt
           </h3>
           {progressData ? (
             <div className="space-y-4">
               <div>
-                <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-1">
-                  Lektion {progressData.currentKeyboardLesson} von {TOTAL_LESSONS}
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                  Aktuelle Lektion
+                </p>
+                <div className="text-xl font-bold text-gray-900 dark:text-white">
+                  Lektion {progressData.currentKeyboardLesson} von {totalLessons}
                 </div>
-                <div className="text-lg text-gray-700 dark:text-gray-300 mb-3">
+                <div className="text-base text-indigo-600 dark:text-indigo-400 font-medium">
                   {progressData.lessonTitle}
                 </div>
+                {progressData.nextLessonId != null && progressData.nextLessonTitle && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Als Nächstes: Lektion {progressData.nextLessonId} · {progressData.nextLessonTitle}
+                  </div>
+                )}
               </div>
               <div>
-                <div className="w-full bg-gray-300 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                   <div
-                    className="bg-indigo-600 dark:bg-indigo-400 h-2 rounded-full transition-all"
-                    style={{
-                      width: `${(progressData.currentKeyboardLesson / TOTAL_LESSONS) * 100}%`,
-                    }}
-                  ></div>
+                    className="bg-indigo-600 dark:bg-indigo-400 h-3 rounded-full transition-all"
+                    style={{ width: `${progressPercent}%` }}
+                  />
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                  {Math.round((progressData.currentKeyboardLesson / TOTAL_LESSONS) * 100)} %
+                <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  {progressPercent} % des Tastaturkurses abgeschlossen
                 </div>
+              </div>
+              <div className="flex gap-8 text-sm">
+                <div>
+                  <div className="font-semibold text-gray-900 dark:text-white">
+                    {completedLessons} {completedLessons === 1 ? "Lektion" : "Lektionen"}
+                  </div>
+                  <div className="text-gray-500 dark:text-gray-400">Abgeschlossen</div>
+                </div>
+                {remainingLessons > 0 && (
+                  <div>
+                    <div className="font-semibold text-gray-900 dark:text-white">
+                      {remainingLessons} {remainingLessons === 1 ? "Lektion" : "Lektionen"}
+                    </div>
+                    <div className="text-gray-500 dark:text-gray-400">Noch vor Ihnen</div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -310,13 +332,18 @@ export default function DashboardPage({ params }: PageProps) {
                       days.push(date);
                     }
 
-                    const dayNames = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+                    // getDay() returns 0=Sun, 1=Mon … 6=Sat — array indexed accordingly
+                    const dayNames = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
                     const statsMap = new Map(
                       statisticsData.dailyStats.map((s) => [s.date, s.learningTimeMs])
                     );
 
                     return days.map((date, index) => {
-                      const dateStr = date.toISOString().split("T")[0];
+                      // Use local calendar date (not UTC) so Europe/Berlin midnight is correct
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, "0");
+                      const day = String(date.getDate()).padStart(2, "0");
+                      const dateStr = `${year}-${month}-${day}`;
                       const mins = Math.round((statsMap.get(dateStr) ?? 0) / 60000);
                       const dayName = dayNames[date.getDay()];
 

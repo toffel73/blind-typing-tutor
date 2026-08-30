@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { type Language } from "../utils/Generator";
 import type { KeyboardLayoutId } from "../types/keyboard";
 import { getLayout } from "../config/layouts";
@@ -36,6 +36,7 @@ interface GameProps {
   sessionTrainingPhase?: SessionTrainingPhase;
   sessionTrainingPhaseLabel?: string;
   isTrainingPaused?: boolean;
+  onStatsChange?: (stats: { wpm: number; accuracy: number; errors: number }) => void;
 }
 
 export const Game: React.FC<GameProps> = ({
@@ -58,6 +59,7 @@ export const Game: React.FC<GameProps> = ({
   sessionTrainingPhase,
   sessionTrainingPhaseLabel,
   isTrainingPaused,
+  onStatsChange,
 }) => {
   const {
     text,
@@ -76,6 +78,11 @@ export const Game: React.FC<GameProps> = ({
     handleInput,
     handleCustomSubmit,
   } = useTypingEngine({ mode, language, correctionMode, sessionTrainingPhase, isTrainingPaused });
+
+  // Forward live stats to parent so it can save them on training end
+  useEffect(() => {
+    onStatsChange?.({ wpm, accuracy, errors });
+  }, [wpm, accuracy, errors, onStatsChange]);
 
   const currentLayout = useMemo(() => getLayout(layoutId), [layoutId]);
   const shouldShowHints = currentLayout.language !== learningLanguage;

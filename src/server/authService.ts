@@ -510,12 +510,14 @@ export function getTrainingStatistics(userId: number): {
 
   const dailyStats = db
     .prepare(
+      // 'localtime' makes SQLite apply the server's TZ offset (set via TZ=Europe/Berlin env var).
+      // This ensures training sessions are grouped by the local calendar date, not UTC.
       `SELECT 
-        DATE(ended_at / 1000, 'unixepoch') as date,
+        DATE(ended_at / 1000, 'unixepoch', 'localtime') as date,
         SUM(active_learning_time_ms) as learningTimeMs
       FROM training_sessions
       WHERE user_id = ? AND ended_at > ?
-      GROUP BY DATE(ended_at / 1000, 'unixepoch')
+      GROUP BY DATE(ended_at / 1000, 'unixepoch', 'localtime')
       ORDER BY date ASC`
     )
     .all(userId, sevenDaysAgo) as Array<{ date: string; learningTimeMs: number }>;
