@@ -15,6 +15,22 @@ interface SessionData {
   expiresAt?: number;
 }
 
+interface ProgressData {
+  currentKeyboardLesson: number;
+  lessonTitle: string;
+}
+
+interface StatisticsData {
+  ok: boolean;
+  totalLearningTimeMs: number;
+  averageWpm: number;
+  totalErrors: number;
+  sessionCount: number;
+  dailyStats: Array<{ date: string; learningTimeMs: number }>;
+}
+
+const TOTAL_LESSONS = 15;
+
 interface PageProps {
   params: Promise<{
     interfaceLang: string;
@@ -24,6 +40,8 @@ interface PageProps {
 export default function DashboardPage({ params }: PageProps) {
   const router = useRouter();
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
+  const [progressData, setProgressData] = useState<ProgressData | null>(null);
+  const [statisticsData, setStatisticsData] = useState<StatisticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +70,24 @@ export default function DashboardPage({ params }: PageProps) {
         }
 
         setSessionData(data);
+
+        // Fetch progress and statistics
+        try {
+          const progressResponse = await fetch("/api/training/progress", { cache: "no-store" });
+          const progressJson = (await progressResponse.json()) as ProgressData;
+          setProgressData(progressJson);
+        } catch {
+          // Silently fail - progress not critical
+        }
+
+        try {
+          const statsResponse = await fetch("/api/training/statistics", { cache: "no-store" });
+          const statsJson = (await statsResponse.json()) as StatisticsData;
+          setStatisticsData(statsJson);
+        } catch {
+          // Silently fail - statistics not critical
+        }
+
         setIsLoading(false);
       } catch {
         setError("Fehler beim Abrufen der Session.");
@@ -181,33 +217,149 @@ export default function DashboardPage({ params }: PageProps) {
           </button>
         </div>
 
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-300">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-              📊 Ihr Fortschritt
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+        {/* Progress Card */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-300">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+            📊 Ihr Lernfortschritt
+          </h3>
+          {progressData ? (
+            <div className="space-y-4">
+              <div>
+                <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-1">
+                  Lektion {progressData.currentKeyboardLesson} von {TOTAL_LESSONS}
+                </div>
+                <div className="text-lg text-gray-700 dark:text-gray-300 mb-3">
+                  {progressData.lessonTitle}
+                </div>
+              </div>
+              <div>
+                <div className="w-full bg-gray-300 dark:bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-indigo-600 dark:bg-indigo-400 h-2 rounded-full transition-all"
+                    style={{
+                      width: `${(progressData.currentKeyboardLesson / TOTAL_LESSONS) * 100}%`,
+                    }}
+                  ></div>
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                  {Math.round((progressData.currentKeyboardLesson / TOTAL_LESSONS) * 100)} %
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-600 dark:text-gray-400">
               Ihr Lernfortschritt wird automatisch gespeichert und trägt zum Keyboard-Training bei.
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500">
-              Benutzername: <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">{sessionData.user?.username}</span>
-            </p>
-          </div>
+          )}
+        </div>
 
+        {/* Statistics Cards */}
+        {statisticsData && statisticsData.ok && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-300">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-              ⚙️ Einstellungen
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              📈 Letzte 7 Tage
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Ihr Trainingsfortschritt wird automatisch gespeichert.
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500">
-              Rolle: <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">
-                {sessionData.user?.role === "admin" ? "Administrator" : "Benutzer"}
-              </span>
-            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <div className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                  {Math.round(statisticsData.totalLearningTimeMs / 60000)}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  Lernzeit (Min.)
+                </div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                  {statisticsData.averageWpm}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  Ø Geschwindigkeit (WPM)
+                </div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+                  {statisticsData.totalErrors}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  Fehler
+                </div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                  {statisticsData.sessionCount}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  Trainingseinheiten
+                </div>
+              </div>
+            </div>
+
+            {/* Daily Activity Chart */}
+            {statisticsData.dailyStats && statisticsData.dailyStats.length > 0 && (
+              <div className="mt-6">
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                  Tägliche Aktivität
+                </h4>
+                <div className="space-y-2">
+                  {(() => {
+                    const today = new Date();
+                    const days = [];
+                    for (let i = 6; i >= 0; i--) {
+                      const date = new Date(today);
+                      date.setDate(date.getDate() - i);
+                      days.push(date);
+                    }
+
+                    const dayNames = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+                    const statsMap = new Map(
+                      statisticsData.dailyStats.map((s) => [s.date, s.learningTimeMs])
+                    );
+
+                    return days.map((date, index) => {
+                      const dateStr = date.toISOString().split("T")[0];
+                      const mins = Math.round((statsMap.get(dateStr) ?? 0) / 60000);
+                      const dayName = dayNames[date.getDay()];
+
+                      return (
+                        <div key={index} className="flex items-center gap-2">
+                          <div className="w-8 text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {dayName}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-gray-300 dark:bg-gray-700 rounded h-2">
+                                <div
+                                  className="bg-indigo-600 dark:bg-indigo-400 h-2 rounded transition-all"
+                                  style={{
+                                    width: `${Math.min((mins / 10) * 100, 100)}%`,
+                                  }}
+                                ></div>
+                              </div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400 w-12 text-right">
+                                {mins} Min.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
+        )}
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-300">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+            👤 Benutzername
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Deine persönliche Lernplattform für Blind Typing
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-500">
+            Benutzername: <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">{sessionData.user?.username}</span>
+          </p>
         </div>
 
         {/* Admin Links */}

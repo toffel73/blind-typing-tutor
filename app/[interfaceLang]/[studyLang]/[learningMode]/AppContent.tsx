@@ -19,8 +19,6 @@ import {
   pauseTrainingSession,
   resumeTrainingSession,
   clearTrainingSession,
-  completeTrainingSession,
-  isTrainingSessionPaused,
 } from "@/utils/trainingSession";
 
 interface AppContentProps {
@@ -51,12 +49,6 @@ export function AppContent({ params }: AppContentProps) {
   const [sessionChecked, setSessionChecked] = useState(false);
   const [isTrainingPaused, setIsTrainingPaused] = useState(false);
   const [showEndDialog, setShowEndDialog] = useState(false);
-  const [completionData, setCompletionData] = useState<{
-    duration: number;
-    wpm: number;
-    accuracy: number;
-    errors: number;
-  } | null>(null);
 
   // Initialize GA
   useEffect(() => {
@@ -118,17 +110,11 @@ export function AppContent({ params }: AppContentProps) {
     router.replace(`/${params.interfaceLang}/dashboard`);
   };
 
-  // Check if paused on mount
-  useEffect(() => {
-    if (isTrainingSessionPaused()) {
-      setIsTrainingPaused(true);
-    }
-  }, []);
-
   const sessionPhaseMeta =
     sessionRemainingMs != null ? getSessionTrainingPhaseMeta(sessionRemainingMs) : null;
   const phaseCompletionSessionRef = useRef<number | null>(null);
 
+  // Handle phase 1 to phase 2 transition
   useEffect(() => {
     if (!trainingExpiresAt || !sessionPhaseMeta) {
       return;
