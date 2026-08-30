@@ -129,7 +129,9 @@ export function AppContent({ params }: AppContentProps) {
       body: JSON.stringify({ startedAt, endedAt, activeLearningTimeMs, wpm, accuracy, errors }),
     }).catch(() => undefined);
 
-    // Advance lesson only if the training ran to the natural end (all phases)
+    // Advance lesson at natural end of training.
+    // The server-side handler is idempotent (deduplicates via trainingExpiresAt), so
+    // even if the mid-training phase effect already fired this call, it won't double-advance.
     if (isNaturalEnd && currentExpiresAt) {
       void fetch("/api/training/progress/complete-keyboard-phase", {
         method: "POST",

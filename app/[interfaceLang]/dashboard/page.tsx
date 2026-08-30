@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { UserRole } from "@/types/auth";
 import { Keyboard as KeyboardIcon } from "lucide-react";
 import { startTrainingSession } from "@/utils/trainingSession";
-import { TRAINING_PHASE_DURATION_SECONDS } from "@/config/auth";
+import { TRAINING_DURATION_MINUTES } from "@/config/auth";
 
 interface SessionData {
   authenticated: boolean;
@@ -172,10 +172,10 @@ export default function DashboardPage({ params }: PageProps) {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-colors duration-300">
           <div className="mb-6">
             <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
-              {TRAINING_PHASE_DURATION_SECONDS * 3 / 60}-Minuten Training
+              {TRAINING_DURATION_MINUTES}-Minuten Training
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              Starten Sie eine {TRAINING_PHASE_DURATION_SECONDS * 3 / 60}-minütige Trainingseinheit mit drei Phasen:
+              Starten Sie eine {TRAINING_DURATION_MINUTES}-minütige Trainingseinheit mit drei Phasen:
             </p>
           </div>
 
