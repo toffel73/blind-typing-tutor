@@ -35,6 +35,7 @@ interface GameProps {
   translations: TranslationKeys;
   sessionTrainingPhase?: SessionTrainingPhase;
   sessionTrainingPhaseLabel?: string;
+  isTrainingPaused?: boolean;
 }
 
 export const Game: React.FC<GameProps> = ({
@@ -56,6 +57,7 @@ export const Game: React.FC<GameProps> = ({
   translations: gameTranslations,
   sessionTrainingPhase,
   sessionTrainingPhaseLabel,
+  isTrainingPaused,
 }) => {
   const {
     text,
@@ -73,7 +75,7 @@ export const Game: React.FC<GameProps> = ({
     isCustomSetup,
     handleInput,
     handleCustomSubmit,
-  } = useTypingEngine({ mode, language, correctionMode, sessionTrainingPhase });
+  } = useTypingEngine({ mode, language, correctionMode, sessionTrainingPhase, isTrainingPaused });
 
   const currentLayout = useMemo(() => getLayout(layoutId), [layoutId]);
   const shouldShowHints = currentLayout.language !== learningLanguage;
@@ -154,28 +156,6 @@ export const Game: React.FC<GameProps> = ({
             showEnglishHints={shouldShowHints}
             lastPressedKey={lastPressedKey}
           />
-          <div className="mt-6 flex justify-center">
-            <a
-              data-testid="wordmemo-link"
-              href="https://wordmemo.net/en/blind-typing-tutor"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors group"
-              title="WordMemo - Language Learning Platform"
-              aria-label="WordMemo - Language Learning Platform"
-            >
-              <img
-                src="/wordmemo-logo.svg"
-                alt="WordMemo"
-                className="h-5 w-5 transition-transform group-hover:scale-105"
-                width="20"
-                height="20"
-              />
-              <span className="font-medium text-sm text-gray-700 dark:text-gray-300">
-                wordmemo.net
-              </span>
-            </a>
-          </div>
         </>
       )}
     </div>

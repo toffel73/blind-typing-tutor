@@ -25,5 +25,6 @@ export default async function RootPage() {
 
   const interfaceLang = detectedLang || "en";
 
-  redirect(`/${interfaceLang}/${interfaceLang}/words`);
+  // Redirect to personal dashboard for authenticated users
+  redirect(`/${interfaceLang}/dashboard`);
 }

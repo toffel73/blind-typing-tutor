@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { SESSION_TTL_MS } from "@/config/auth";
+import { TRAINING_SESSION_TTL_MS } from "@/config/auth";
 
 interface SessionTimerProps {
   expiresAt: number;
@@ -20,14 +20,14 @@ export function SessionTimer({ expiresAt, onRemainingChange }: SessionTimerProps
   const router = useRouter();
   const [remaining, setRemaining] = useState(() => {
     const remainingMs = new Date(expiresAt).getTime() - Date.now();
-    return Math.min(Math.max(remainingMs, 0), SESSION_TTL_MS);
+    return Math.min(Math.max(remainingMs, 0), TRAINING_SESSION_TTL_MS);
   });
   const loggedOutRef = useRef(false);
 
   useEffect(() => {
     const tick = () => {
       const remainingMs = new Date(expiresAt).getTime() - Date.now();
-      const ms = Math.min(Math.max(remainingMs, 0), SESSION_TTL_MS);
+      const ms = Math.min(Math.max(remainingMs, 0), TRAINING_SESSION_TTL_MS);
       setRemaining(ms);
       onRemainingChange?.(ms);
 

@@ -49,24 +49,6 @@ export const MobileMessage: React.FC<MobileMessageProps> = ({
           </div>
         </div>
 
-        {/* WordMemo Link */}
-        <div className="mb-6">
-          <a
-            href="https://wordmemo.net/en/blind-typing-tutor"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm hover:shadow-md"
-          >
-            <img
-              src="/wordmemo-logo.svg"
-              alt="WordMemo"
-              className="h-5 w-5"
-              width="20"
-              height="20"
-            />
-            <span>WordMemo.net</span>
-          </a>
-        </div>
 
         <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
           <p className="text-xs text-gray-400 dark:text-gray-500">

@@ -118,6 +118,22 @@ function getDb() {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )`
     ).run();
+    db.prepare(
+      `CREATE TABLE IF NOT EXISTS training_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        started_at INTEGER NOT NULL,
+        ended_at INTEGER NOT NULL,
+        active_learning_time_ms INTEGER NOT NULL DEFAULT 0,
+        wpm INTEGER NOT NULL DEFAULT 0,
+        accuracy REAL NOT NULL DEFAULT 0,
+        errors INTEGER NOT NULL DEFAULT 0,
+        current_lesson INTEGER,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`
+    ).run();
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_training_sessions_user_id_ended_at ON training_sessions(user_id, ended_at)").run();
     const columns = db.prepare("PRAGMA table_info(sessions)").all() as Array<{ name: string }>;
     const hasIssuedAt = columns.some((column) => column.name === "issued_at");
     if (!hasIssuedAt) {
@@ -439,6 +455,78 @@ export function getSessionUser(sessionToken: string): SessionUser | null {
   }
 
   return { id: row.userId, username: row.username, role: row.role, expiresAt: row.expiresAt };
+}
+
+/**
+ * Save a completed training session
+ */
+export function saveTrainingSession(
+  userId: number,
+  startedAt: number,
+  endedAt: number,
+  activeLearningTimeMs: number,
+  wpm: number,
+  accuracy: number,
+  errors: number,
+  currentLesson?: number
+): void {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO training_sessions
+     (user_id, started_at, ended_at, active_learning_time_ms, wpm, accuracy, errors, current_lesson)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(userId, startedAt, endedAt, activeLearningTimeMs, wpm, accuracy, errors, currentLesson ?? null);
+}
+
+/**
+ * Get 7-day training statistics for a user
+ */
+export function getTrainingStatistics(userId: number): {
+  totalLearningTimeMs: number;
+  averageWpm: number;
+  totalErrors: number;
+  sessionCount: number;
+  dailyStats: Array<{ date: string; learningTimeMs: number }>;
+} {
+  const db = getDb();
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+  const stats = db
+    .prepare(
+      `SELECT 
+        SUM(active_learning_time_ms) as totalLearningTimeMs,
+        AVG(wpm) as averageWpm,
+        SUM(errors) as totalErrors,
+        COUNT(*) as sessionCount
+      FROM training_sessions
+      WHERE user_id = ? AND ended_at > ?`
+    )
+    .get(userId, sevenDaysAgo) as {
+    totalLearningTimeMs: number | null;
+    averageWpm: number | null;
+    totalErrors: number | null;
+    sessionCount: number;
+  };
+
+  const dailyStats = db
+    .prepare(
+      `SELECT 
+        DATE(ended_at / 1000, 'unixepoch') as date,
+        SUM(active_learning_time_ms) as learningTimeMs
+      FROM training_sessions
+      WHERE user_id = ? AND ended_at > ?
+      GROUP BY DATE(ended_at / 1000, 'unixepoch')
+      ORDER BY date ASC`
+    )
+    .all(userId, sevenDaysAgo) as Array<{ date: string; learningTimeMs: number }>;
+
+  return {
+    totalLearningTimeMs: stats.totalLearningTimeMs ?? 0,
+    averageWpm: Math.round(stats.averageWpm ?? 0),
+    totalErrors: stats.totalErrors ?? 0,
+    sessionCount: stats.sessionCount,
+    dailyStats: dailyStats || [],
+  };
 }
 
 export function deleteSession(sessionToken: string): void {

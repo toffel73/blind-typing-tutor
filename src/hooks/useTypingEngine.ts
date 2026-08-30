@@ -12,6 +12,7 @@ interface TypingEngineProps {
   language: Language;
   correctionMode: boolean;
   sessionTrainingPhase?: SessionTrainingPhase;
+  isTrainingPaused?: boolean;
 }
 
 function pickRandomItem<T>(items: T[]): T {
@@ -23,6 +24,7 @@ export function useTypingEngine({
   language,
   correctionMode,
   sessionTrainingPhase,
+  isTrainingPaused,
 }: TypingEngineProps) {
   const [text, setText] = useState("");
   const [input, setInput] = useState("");
@@ -236,6 +238,12 @@ export function useTypingEngine({
   };
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Disable input when training is paused
+    if (isTrainingPaused) {
+      e.target.value = input;
+      return;
+    }
+
     const val = e.target.value;
 
     if (val.length > text.length) {
