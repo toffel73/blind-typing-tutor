@@ -108,6 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
           {sessionExpiresAt != null && (
             <SessionTimer
               expiresAt={sessionExpiresAt}
+              isPaused={isTrainingPaused}
               onRemainingChange={onSessionRemainingChange}
             />
           )}

@@ -78,6 +78,8 @@ export function AppContent({ params }: AppContentProps) {
         if ((trainingSessionData.status === "active" || trainingSessionData.status === "paused") && trainingSessionData.expiresAt) {
           setTrainingExpiresAt(trainingSessionData.expiresAt);
           setSessionRemainingMs(getTrainingSessionRemainingMs());
+          // Restore paused state on reload
+          setIsTrainingPaused(trainingSessionData.status === "paused");
           setSessionChecked(true);
         } else {
           // No active training session - redirect to dashboard
@@ -92,7 +94,10 @@ export function AppContent({ params }: AppContentProps) {
   // Handle pause/resume toggle
   const handleTogglePause = () => {
     if (isTrainingPaused) {
-      resumeTrainingSession();
+      const resumed = resumeTrainingSession();
+      if (resumed.expiresAt) {
+        setTrainingExpiresAt(resumed.expiresAt);
+      }
       setIsTrainingPaused(false);
     } else {
       pauseTrainingSession();
