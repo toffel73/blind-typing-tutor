@@ -4,6 +4,10 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Force server-side timezone to Europe/Berlin so SQLite's 'localtime' modifier and
+// JavaScript Date methods both produce German calendar dates (handles DST automatically).
+process.env.TZ = 'Europe/Berlin';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable React strict mode

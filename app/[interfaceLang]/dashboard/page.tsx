@@ -332,13 +332,18 @@ export default function DashboardPage({ params }: PageProps) {
                       days.push(date);
                     }
 
-                    const dayNames = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+                    // getDay() returns 0=Sun, 1=Mon … 6=Sat — array indexed accordingly
+                    const dayNames = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
                     const statsMap = new Map(
                       statisticsData.dailyStats.map((s) => [s.date, s.learningTimeMs])
                     );
 
                     return days.map((date, index) => {
-                      const dateStr = date.toISOString().split("T")[0];
+                      // Use local calendar date (not UTC) so Europe/Berlin midnight is correct
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, "0");
+                      const day = String(date.getDate()).padStart(2, "0");
+                      const dateStr = `${year}-${month}-${day}`;
                       const mins = Math.round((statsMap.get(dateStr) ?? 0) / 60000);
                       const dayName = dayNames[date.getDay()];
 
