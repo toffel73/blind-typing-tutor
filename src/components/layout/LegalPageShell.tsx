@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Logo } from "@/components/layout/Logo";
+import { ArrowLeft } from "lucide-react";
+import { Logo } from "./Logo";
 
 interface LegalPageShellProps {
   title: string;
@@ -8,28 +9,32 @@ interface LegalPageShellProps {
 
 export function LegalPageShell({ title, children }: LegalPageShellProps) {
   return (
-    <div className="min-h-screen bg-[var(--ock-app-bg)] px-4 py-8 dark:bg-gray-900 sm:px-6">
-      <header className="mx-auto mb-6 flex max-w-4xl items-center justify-between gap-4">
-        <Link href="/de/dashboard" className="flex items-center gap-3 text-gray-900 dark:text-white">
-          <Logo height={30} priority />
-          <span className="font-bold">OCK – Tastatutor</span>
-        </Link>
-        <Link href="/de/dashboard" className="ock-link text-sm font-medium">
-          Zurück zum Dashboard
-        </Link>
+    <div className="min-h-screen bg-[var(--ock-app-bg)] dark:bg-gray-900">
+      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm px-6 py-4">
+        <div className="max-w-4xl mx-auto flex items-center gap-3">
+          <Link
+            href="/"
+            className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+            title="Zurück zum Dashboard"
+            aria-label="Zurück zum Dashboard"
+          >
+            <ArrowLeft size={20} />
+          </Link>
+          <Logo height={24} />
+          <span className="font-bold text-gray-900 dark:text-white">
+            OCK – Tastatutor
+          </span>
+        </div>
       </header>
 
-      <main className="ock-card mx-auto max-w-4xl p-6 sm:p-10">
-        <h1 className="mb-8 text-3xl font-bold text-gray-900 dark:text-white">{title}</h1>
-        <div className="space-y-7 text-sm leading-7 text-gray-700 dark:text-gray-300 [&_a]:text-[var(--ock-red)] [&_a]:underline [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-gray-900 dark:[&_h2]:text-white [&_h3]:mt-5 [&_h3]:font-semibold [&_h3]:text-gray-900 dark:[&_h3]:text-white [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6">
-          {children}
-        </div>
+      <main className="max-w-4xl mx-auto px-6 py-10">
+        <article className="ock-card p-6 sm:p-10 text-gray-700 dark:text-gray-300">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
+            {title}
+          </h1>
+          <div className="legal-content">{children}</div>
+        </article>
       </main>
-
-      <footer className="mx-auto mt-6 flex max-w-4xl justify-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-        <Link href="/impressum" className="hover:underline">Impressum</Link>
-        <Link href="/datenschutz" className="hover:underline">Datenschutz</Link>
-      </footer>
     </div>
   );
 }
