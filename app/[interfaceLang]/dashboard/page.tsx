@@ -111,6 +111,14 @@ export default function DashboardPage({ params }: PageProps) {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      router.replace("/login");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -166,7 +174,7 @@ export default function DashboardPage({ params }: PageProps) {
               </button>
             )}
             <button
-              onClick={() => router.push("/login")}
+              onClick={() => void handleLogout()}
               className="px-3 py-1.5 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               Abmelden
@@ -456,7 +464,7 @@ export default function DashboardPage({ params }: PageProps) {
           <p>
             © 2024 OCK - Tastatutor -{" "}
             <button
-              onClick={() => router.push("/login")}
+              onClick={() => void handleLogout()}
               className="text-indigo-600 dark:text-indigo-400 hover:underline"
             >
               Logout
