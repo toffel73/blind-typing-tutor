@@ -53,18 +53,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (password !== body.passwordConfirm) {
-      return NextResponse.json(
-        { ok: false, message: PASSWORD_MISMATCH_MESSAGE },
-        { status: 400 }
-      );
-    }
-
     const inviteCode = typeof body.inviteCode === "string" ? body.inviteCode : "";
     if (!verifyInviteCode(inviteCode)) {
       return NextResponse.json(
         { ok: false, message: INVALID_INVITE_MESSAGE },
         { status: 403 }
+      );
+    }
+
+    if (password !== body.passwordConfirm) {
+      return NextResponse.json(
+        { ok: false, message: PASSWORD_MISMATCH_MESSAGE },
+        { status: 400 }
       );
     }
 
