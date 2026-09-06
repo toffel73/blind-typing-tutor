@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { UserRole } from "@/types/auth";
 import { Users, BookOpen } from "lucide-react";
 import { startTrainingSession } from "@/utils/trainingSession";
@@ -496,8 +497,10 @@ export default function DashboardPage({ params }: PageProps) {
       {/* Footer */}
       <footer className="mt-16 border-t border-gray-200 dark:border-gray-700 py-6 px-6">
         <div className="max-w-4xl mx-auto text-center text-sm text-gray-600 dark:text-gray-400">
-          <p>
-            © 2024 OCK - Tastatutor -{" "}
+          <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+            <span>© {new Date().getFullYear()} OCK – Tastatutor</span>
+            <Link href="/impressum" className="ock-link hover:underline">Impressum</Link>
+            <Link href="/datenschutz" className="ock-link hover:underline">Datenschutz</Link>
             <button
               onClick={() => void handleLogout()}
               className="ock-link hover:underline"
