@@ -465,7 +465,7 @@ export default function DashboardPage({ params }: PageProps) {
             © 2024 OCK - Tastatutor -{" "}
             <button
               onClick={() => void handleLogout()}
-              className="text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="ock-link hover:underline"
             >
               Abmelden
             </button>
