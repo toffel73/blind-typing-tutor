@@ -65,6 +65,7 @@ export function countMedicalTermsByDifficulty<T extends { difficulty: MedicalTer
 const RARE_LETTERS_PATTERN = /[qxyQXY]/g;
 const UMLAUT_PATTERN = /[äöüÄÖÜß]/g;
 const WORD_SPLIT_PATTERN = /[\s-]+/;
+const UPPERCASE_ABBREVIATION_PATTERN = /^[A-ZÄÖÜ]{2,}$/;
 
 /**
  * Suggests an initial difficulty for a medical term based on its typing
@@ -101,7 +102,9 @@ export function calculateMedicalTermDifficulty(term: string): MedicalTermDifficu
     wordScore = 1;
   }
 
-  const score = lengthScore + wordScore + hyphenCount + umlautCount + rareLetterCount;
+  const abbreviationScore = UPPERCASE_ABBREVIATION_PATTERN.test(trimmed) ? 1 : 0;
+  const score =
+    lengthScore + wordScore + hyphenCount + umlautCount + rareLetterCount + abbreviationScore;
 
   if (score >= 4) {
     return 3;
@@ -116,10 +119,12 @@ export function calculateMedicalTermDifficulty(term: string): MedicalTermDifficu
 export function getLearningStageFromKeyboardLesson(
   currentKeyboardLesson: number
 ): MedicalTermLearningStage {
-  if (!Number.isFinite(currentKeyboardLesson) || currentKeyboardLesson <= 3) {
+  // Keep medical-term difficulty aligned with the visible course levels:
+  // Beginner 1-15, Advanced 16-30, Professional/Elite 31+.
+  if (!Number.isFinite(currentKeyboardLesson) || currentKeyboardLesson <= 15) {
     return "beginner";
   }
-  if (currentKeyboardLesson <= 7) {
+  if (currentKeyboardLesson <= 30) {
     return "intermediate";
   }
   return "advanced";

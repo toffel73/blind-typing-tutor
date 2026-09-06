@@ -25,7 +25,7 @@ test.describe("calculateMedicalTermDifficulty", () => {
   });
 
   test("classifies medium compound terms as Mittel (2)", () => {
-    for (const term of ["Gelenkkapsel", "Meniskusriss", "Osteoporose"]) {
+    for (const term of ["Gelenkkapsel", "Meniskusriss", "Osteoporose", "CT", "MRT", "CRPS"]) {
       expect(calculateMedicalTermDifficulty(term)).toBe(2);
     }
   });
@@ -35,6 +35,7 @@ test.describe("calculateMedicalTermDifficulty", () => {
       "Acromioclaviculargelenk",
       "Patella-Apprehension-Test",
       "Pertrochantäre Femurfraktur",
+      "Epiphysiolysis capitis femoris",
     ]) {
       expect(calculateMedicalTermDifficulty(term)).toBe(3);
     }
@@ -47,19 +48,20 @@ test.describe("calculateMedicalTermDifficulty", () => {
 });
 
 test.describe("getLearningStageFromKeyboardLesson", () => {
-  test("lessons 1-3 are beginner", () => {
+  test("lessons 1-15 are beginner", () => {
     expect(getLearningStageFromKeyboardLesson(1)).toBe("beginner");
-    expect(getLearningStageFromKeyboardLesson(3)).toBe("beginner");
+    expect(getLearningStageFromKeyboardLesson(8)).toBe("beginner");
+    expect(getLearningStageFromKeyboardLesson(15)).toBe("beginner");
   });
 
-  test("lessons 4-7 are intermediate", () => {
-    expect(getLearningStageFromKeyboardLesson(4)).toBe("intermediate");
-    expect(getLearningStageFromKeyboardLesson(7)).toBe("intermediate");
+  test("lessons 16-30 use the intermediate medical pool", () => {
+    expect(getLearningStageFromKeyboardLesson(16)).toBe("intermediate");
+    expect(getLearningStageFromKeyboardLesson(30)).toBe("intermediate");
   });
 
-  test("lesson 8 and above are advanced", () => {
-    expect(getLearningStageFromKeyboardLesson(8)).toBe("advanced");
-    expect(getLearningStageFromKeyboardLesson(20)).toBe("advanced");
+  test("lesson 31 and above use the advanced medical pool", () => {
+    expect(getLearningStageFromKeyboardLesson(31)).toBe("advanced");
+    expect(getLearningStageFromKeyboardLesson(46)).toBe("advanced");
   });
 });
 

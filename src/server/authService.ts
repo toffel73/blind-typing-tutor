@@ -137,6 +137,27 @@ function getDb() {
       }
     });
     medicalInsertTransaction(defaultMedicalTerms);
+    db.prepare(
+      `CREATE TABLE IF NOT EXISTS schema_migrations (
+        id TEXT PRIMARY KEY,
+        applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`
+    ).run();
+    const uppercaseDifficultyMigration = "2026-09-uppercase-medical-abbreviations";
+    const uppercaseDifficultyApplied = db
+      .prepare("SELECT id FROM schema_migrations WHERE id = ?")
+      .get(uppercaseDifficultyMigration) as { id: string } | undefined;
+    if (!uppercaseDifficultyApplied) {
+      const migrateUppercaseDifficulties = db.transaction(() => {
+        db.prepare(
+          "UPDATE medical_terms SET difficulty = 2 WHERE term IN ('CT', 'MRT', 'CRPS') AND difficulty = 1"
+        ).run();
+        db.prepare("INSERT INTO schema_migrations (id) VALUES (?)").run(
+          uppercaseDifficultyMigration
+        );
+      });
+      migrateUppercaseDifficulties();
+    }
 
     db.prepare(
       `CREATE TABLE IF NOT EXISTS sessions (
