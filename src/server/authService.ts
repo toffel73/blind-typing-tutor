@@ -8,7 +8,12 @@ import {
 } from "node:crypto";
 import Database from "better-sqlite3";
 import { SESSION_TTL_MS } from "@/config/auth";
-import { getKeyboardLessonById, getLastKeyboardLessonId } from "@/data/keyboardTraining";
+import {
+  ELITE_LESSON_ID,
+  getKeyboardLessonById,
+  getLearningLevelForLesson,
+  learningLevelLabels,
+} from "@/data/keyboardTraining";
 import { medicalTerms as defaultMedicalTerms } from "@/data/medicalTerms";
 import type { UserRole } from "@/types/auth";
 import {
@@ -163,11 +168,20 @@ function getDb() {
         wpm INTEGER NOT NULL DEFAULT 0,
         accuracy REAL NOT NULL DEFAULT 0,
         errors INTEGER NOT NULL DEFAULT 0,
+        attempted_words INTEGER NOT NULL DEFAULT 0,
+        correct_words INTEGER NOT NULL DEFAULT 0,
         current_lesson INTEGER,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )`
     ).run();
+    const trainingSessionColumns = db.prepare("PRAGMA table_info(training_sessions)").all() as Array<{ name: string }>;
+    if (!trainingSessionColumns.some((column) => column.name === "attempted_words")) {
+      db.prepare("ALTER TABLE training_sessions ADD COLUMN attempted_words INTEGER NOT NULL DEFAULT 0").run();
+    }
+    if (!trainingSessionColumns.some((column) => column.name === "correct_words")) {
+      db.prepare("ALTER TABLE training_sessions ADD COLUMN correct_words INTEGER NOT NULL DEFAULT 0").run();
+    }
     db.prepare("CREATE INDEX IF NOT EXISTS idx_training_sessions_user_id_ended_at ON training_sessions(user_id, ended_at)").run();
     const columns = db.prepare("PRAGMA table_info(sessions)").all() as Array<{ name: string }>;
     const hasIssuedAt = columns.some((column) => column.name === "issued_at");
@@ -276,7 +290,7 @@ function hashSessionToken(token: string) {
 }
 
 function sanitizeKeyboardLesson(lesson: number) {
-  const maxLesson = getLastKeyboardLessonId();
+  const maxLesson = ELITE_LESSON_ID;
   if (!Number.isFinite(lesson)) {
     return 1;
   }
@@ -340,12 +354,15 @@ export function getKeyboardProgressForUser(userId: number) {
   return {
     currentKeyboardLesson: lesson.id,
     lessonTitle: lesson.title,
+    learningLevel: getLearningLevelForLesson(lesson.id),
+    learningLevelLabel: learningLevelLabels[getLearningLevelForLesson(lesson.id)],
+    eliteUnlocked: lesson.id === ELITE_LESSON_ID,
   };
 }
 
 export function completeKeyboardPhaseForSession(userId: number, sessionExpiresAt: number) {
   const db = getDb();
-  const maxLesson = getLastKeyboardLessonId();
+  const maxLesson = ELITE_LESSON_ID;
   const tx = db.transaction((dbUserId: number, dbSessionExpiresAt: number) => {
     db.prepare("INSERT OR IGNORE INTO user_learning_progress (user_id) VALUES (?)").run(dbUserId);
     const current = db
@@ -593,14 +610,20 @@ export function saveTrainingSession(
   wpm: number,
   accuracy: number,
   errors: number,
+  attemptedWords: number,
+  correctWords: number,
   currentLesson?: number
 ): void {
   const db = getDb();
   db.prepare(
     `INSERT INTO training_sessions
-     (user_id, started_at, ended_at, active_learning_time_ms, wpm, accuracy, errors, current_lesson)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(userId, startedAt, endedAt, activeLearningTimeMs, wpm, accuracy, errors, currentLesson ?? null);
+     (user_id, started_at, ended_at, active_learning_time_ms, wpm, accuracy, errors,
+      attempted_words, correct_words, current_lesson)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    userId, startedAt, endedAt, activeLearningTimeMs, wpm, accuracy, errors,
+    attemptedWords, correctWords, currentLesson ?? null
+  );
 }
 
 /**
@@ -612,6 +635,13 @@ export function getTrainingStatistics(userId: number): {
   totalErrors: number;
   sessionCount: number;
   dailyStats: Array<{ date: string; learningTimeMs: number }>;
+  weeklyStats: Array<{
+    weekStart: string;
+    averageWpm: number;
+    correctWords: number;
+    attemptedWords: number;
+    correctWordRate: number;
+  }>;
 } {
   const db = getDb();
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -647,12 +677,45 @@ export function getTrainingStatistics(userId: number): {
     )
     .all(userId, sevenDaysAgo) as Array<{ date: string; learningTimeMs: number }>;
 
+  const twelveWeeksAgo = Date.now() - 12 * 7 * 24 * 60 * 60 * 1000;
+  const weeklyRows = db.prepare(
+    `SELECT
+       DATE(ended_at / 1000, 'unixepoch', 'localtime', 'weekday 0', '-6 days') AS weekStart,
+       CASE WHEN SUM(active_learning_time_ms) > 0
+         THEN SUM(wpm * active_learning_time_ms) * 1.0 / SUM(active_learning_time_ms)
+         ELSE AVG(wpm) END AS averageWpm,
+       SUM(correct_words) AS correctWords,
+       SUM(attempted_words) AS attemptedWords
+     FROM training_sessions
+     WHERE user_id = ? AND ended_at > ?
+     GROUP BY weekStart
+     ORDER BY weekStart ASC`
+  ).all(userId, twelveWeeksAgo) as Array<{
+    weekStart: string;
+    averageWpm: number | null;
+    correctWords: number | null;
+    attemptedWords: number | null;
+  }>;
+
+  const weeklyStats = weeklyRows.map((row) => {
+    const attemptedWords = row.attemptedWords ?? 0;
+    const correctWords = row.correctWords ?? 0;
+    return {
+      weekStart: row.weekStart,
+      averageWpm: Math.round(row.averageWpm ?? 0),
+      correctWords,
+      attemptedWords,
+      correctWordRate: attemptedWords > 0 ? Math.round((correctWords / attemptedWords) * 1000) / 10 : 0,
+    };
+  });
+
   return {
     totalLearningTimeMs: stats.totalLearningTimeMs ?? 0,
     averageWpm: Math.round(stats.averageWpm ?? 0),
     totalErrors: stats.totalErrors ?? 0,
     sessionCount: stats.sessionCount,
     dailyStats: dailyStats || [],
+    weeklyStats,
   };
 }
 

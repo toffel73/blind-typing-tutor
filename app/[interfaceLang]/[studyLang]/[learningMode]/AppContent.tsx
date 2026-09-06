@@ -43,6 +43,8 @@ interface TrainingStats {
   wpm: number;
   accuracy: number;
   errors: number;
+  attemptedWords: number;
+  correctWords: number;
 }
 
 export function AppContent({ params }: AppContentProps) {
@@ -57,7 +59,9 @@ export function AppContent({ params }: AppContentProps) {
   const [showEndDialog, setShowEndDialog] = useState(false);
 
   // Live stats kept in a ref so we always have the latest value at training-end time
-  const liveStatsRef = useRef<TrainingStats>({ wpm: 0, accuracy: 100, errors: 0 });
+  const liveStatsRef = useRef<TrainingStats>({
+    wpm: 0, accuracy: 100, errors: 0, attemptedWords: 0, correctWords: 0,
+  });
   const handleStatsChange = useCallback((stats: TrainingStats) => {
     liveStatsRef.current = stats;
   }, []);
@@ -118,7 +122,7 @@ export function AppContent({ params }: AppContentProps) {
     const activeLearningTimeMs = Math.max(0, endedAt - startedAt - totalPausedMs);
     const currentExpiresAt = data.expiresAt;
 
-    const { wpm, accuracy, errors } = liveStatsRef.current;
+    const { wpm, accuracy, errors, attemptedWords, correctWords } = liveStatsRef.current;
 
     clearTrainingSession();
 
@@ -126,7 +130,10 @@ export function AppContent({ params }: AppContentProps) {
     void fetch("/api/training/end-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startedAt, endedAt, activeLearningTimeMs, wpm, accuracy, errors }),
+      body: JSON.stringify({
+        startedAt, endedAt, activeLearningTimeMs, wpm, accuracy, errors,
+        attemptedWords, correctWords,
+      }),
     }).catch(() => undefined);
 
     // Advance lesson at natural end of training.
@@ -316,4 +323,3 @@ export function AppContent({ params }: AppContentProps) {
     </div>
   );
 }
-
