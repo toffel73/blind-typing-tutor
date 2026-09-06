@@ -11,6 +11,13 @@ import { SESSION_TTL_MS } from "@/config/auth";
 import { getKeyboardLessonById, getLastKeyboardLessonId } from "@/data/keyboardTraining";
 import { medicalTerms as defaultMedicalTerms } from "@/data/medicalTerms";
 import type { UserRole } from "@/types/auth";
+import {
+  calculateMedicalTermDifficulty,
+  getLearningStageFromKeyboardLesson,
+  isValidMedicalTermDifficulty,
+  selectWeightedMedicalTerms,
+  type MedicalTermDifficulty,
+} from "@/utils/medicalTermDifficulty";
 
 interface UserRow {
   id: number;
@@ -29,6 +36,7 @@ interface AdminUserListRow {
 interface MedicalTermRow {
   id: number;
   term: string;
+  difficulty: MedicalTermDifficulty;
 }
 
 interface SessionUser {
@@ -85,15 +93,42 @@ function getDb() {
       `CREATE TABLE IF NOT EXISTS medical_terms (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         term TEXT NOT NULL UNIQUE,
+        difficulty INTEGER NOT NULL DEFAULT 1 CHECK(difficulty IN (1, 2, 3)),
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       )`
     ).run();
+    const medicalTermColumns = db.prepare("PRAGMA table_info(medical_terms)").all() as Array<{
+      name: string;
+    }>;
+    const hasDifficultyColumn = medicalTermColumns.some((column) => column.name === "difficulty");
+    if (!hasDifficultyColumn) {
+      // Existing production data predates the difficulty feature: add the column
+      // with a safe default first, then classify already-present terms once so
+      // no data is lost and every term always has a valid difficulty. Admins can
+      // change any of these initial values afterwards; this backfill only runs
+      // the one time the column is added, so manual edits are never overwritten.
+      db.prepare(
+        "ALTER TABLE medical_terms ADD COLUMN difficulty INTEGER NOT NULL DEFAULT 1 CHECK(difficulty IN (1, 2, 3))"
+      ).run();
+      const existingTerms = db.prepare("SELECT id, term FROM medical_terms").all() as Array<{
+        id: number;
+        term: string;
+      }>;
+      const updateDifficulty = db.prepare("UPDATE medical_terms SET difficulty = ? WHERE id = ?");
+      const classifyExistingTerms = db.transaction((rows: Array<{ id: number; term: string }>) => {
+        for (const row of rows) {
+          updateDifficulty.run(calculateMedicalTermDifficulty(row.term), row.id);
+        }
+      });
+      classifyExistingTerms(existingTerms);
+    }
     const insertMedicalTerm = db.prepare(
-      "INSERT OR IGNORE INTO medical_terms (term) VALUES (?)"
+      "INSERT OR IGNORE INTO medical_terms (term, difficulty) VALUES (?, ?)"
     );
     const medicalInsertTransaction = db.transaction((terms: string[]) => {
       for (const term of terms) {
-        insertMedicalTerm.run(term.trim());
+        const trimmedTerm = term.trim();
+        insertMedicalTerm.run(trimmedTerm, calculateMedicalTermDifficulty(trimmedTerm));
       }
     });
     medicalInsertTransaction(defaultMedicalTerms);
@@ -163,6 +198,39 @@ function normalizeRole(role: string | undefined): UserRole {
   return role === "admin" ? "admin" : "user";
 }
 
+/**
+ * Reads the public registration invite code exclusively from the server-side
+ * environment variable REGISTRATION_INVITE_CODE. Never expose this value to
+ * the client, log it, or persist it anywhere (including SQLite).
+ */
+function getRegistrationInviteCode(): string | null {
+  const code = process.env.REGISTRATION_INVITE_CODE;
+  return typeof code === "string" && code.length > 0 ? code : null;
+}
+
+/**
+ * Public (unauthenticated) registration is only available when a non-empty
+ * REGISTRATION_INVITE_CODE is configured on the server.
+ */
+export function isPublicRegistrationEnabled(): boolean {
+  return getRegistrationInviteCode() !== null;
+}
+
+/**
+ * Compares a candidate invite code against REGISTRATION_INVITE_CODE using a
+ * constant-time comparison. Both values are hashed to a fixed-length digest
+ * first so that timingSafeEqual never fails due to differing input lengths.
+ */
+export function verifyInviteCode(candidate: string): boolean {
+  const expected = getRegistrationInviteCode();
+  if (!expected || typeof candidate !== "string" || candidate.length === 0) {
+    return false;
+  }
+  const expectedHash = createHash("sha256").update(expected).digest();
+  const candidateHash = createHash("sha256").update(candidate).digest();
+  return timingSafeEqual(expectedHash, candidateHash);
+}
+
 function validateUsernameAndPassword(username: string, password: string) {
   const normalizedUsername = normalizeUsername(username);
   if (!normalizedUsername) {
@@ -229,7 +297,7 @@ export function registerUser(username: string, password: string, role: string | 
     .get(normalizedUsername) as { id: number } | undefined;
 
   if (existing) {
-    return { ok: false as const, message: "Benutzername existiert bereits." };
+    return { ok: false as const, message: "Dieser Benutzername ist bereits vergeben." };
   }
 
   const salt = createSalt();
@@ -352,17 +420,36 @@ export function deleteUserByAdmin(
 export function listMedicalTermsForAdmin(): MedicalTermRow[] {
   const db = getDb();
   return db
-    .prepare("SELECT id, term FROM medical_terms ORDER BY term COLLATE NOCASE ASC")
+    .prepare("SELECT id, term, difficulty FROM medical_terms ORDER BY term COLLATE NOCASE ASC")
     .all() as MedicalTermRow[];
 }
 
-export function listMedicalTermsForTraining(): string[] {
-  const terms = listMedicalTermsForAdmin().map((row) => row.term);
-  return terms.length > 0 ? terms : defaultMedicalTerms;
+/**
+ * Selects a batch of medical terms for a training session, weighted by the
+ * user's current keyboard lesson (used as the existing numeric learning
+ * stage - no separate progress tracking is introduced). Early lessons only
+ * unlock easy terms; later lessons extend the vocabulary with medium and
+ * hard terms without dropping the easy ones. Never returns an empty result
+ * as long as at least one medical term exists.
+ */
+export function selectMedicalTermsForUserTraining(userId: number, count = 40): string[] {
+  const rows = listMedicalTermsForAdmin();
+  const pool =
+    rows.length > 0
+      ? rows.map((row) => ({ term: row.term, difficulty: row.difficulty }))
+      : defaultMedicalTerms.map((term) => ({
+          term,
+          difficulty: calculateMedicalTermDifficulty(term),
+        }));
+
+  const progress = getKeyboardProgressForUser(userId);
+  const stage = getLearningStageFromKeyboardLesson(progress.currentKeyboardLesson);
+  return selectWeightedMedicalTerms(pool, stage, count);
 }
 
 export function addMedicalTermByAdmin(
-  term: string
+  term: string,
+  difficulty?: unknown
 ): { ok: true; term: string } | { ok: false; message: string } {
   const normalizedTerm = term.trim();
   if (!normalizedTerm) {
@@ -370,6 +457,18 @@ export function addMedicalTermByAdmin(
   }
   if (normalizedTerm.length > 120) {
     return { ok: false, message: "Fachbegriff darf maximal 120 Zeichen haben." };
+  }
+
+  let normalizedDifficulty: MedicalTermDifficulty;
+  if (difficulty === undefined) {
+    normalizedDifficulty = calculateMedicalTermDifficulty(normalizedTerm);
+  } else if (isValidMedicalTermDifficulty(difficulty)) {
+    normalizedDifficulty = difficulty;
+  } else {
+    return {
+      ok: false,
+      message: "Ungültiger Schwierigkeitsgrad. Erlaubt sind nur 1 (Leicht), 2 (Mittel) oder 3 (Schwer).",
+    };
   }
 
   const db = getDb();
@@ -380,8 +479,34 @@ export function addMedicalTermByAdmin(
     return { ok: false, message: "Fachbegriff existiert bereits." };
   }
 
-  db.prepare("INSERT INTO medical_terms (term) VALUES (?)").run(normalizedTerm);
+  db.prepare("INSERT INTO medical_terms (term, difficulty) VALUES (?, ?)").run(
+    normalizedTerm,
+    normalizedDifficulty
+  );
   return { ok: true, term: normalizedTerm };
+}
+
+export function updateMedicalTermDifficultyByAdmin(
+  id: number,
+  difficulty: unknown
+): { ok: true; term: string; difficulty: MedicalTermDifficulty } | { ok: false; message: string } {
+  if (!isValidMedicalTermDifficulty(difficulty)) {
+    return {
+      ok: false,
+      message: "Ungültiger Schwierigkeitsgrad. Erlaubt sind nur 1 (Leicht), 2 (Mittel) oder 3 (Schwer).",
+    };
+  }
+
+  const db = getDb();
+  const row = db.prepare("SELECT term FROM medical_terms WHERE id = ?").get(id) as
+    | { term: string }
+    | undefined;
+  if (!row) {
+    return { ok: false, message: "Fachbegriff wurde nicht gefunden." };
+  }
+
+  db.prepare("UPDATE medical_terms SET difficulty = ? WHERE id = ?").run(difficulty, id);
+  return { ok: true, term: row.term, difficulty };
 }
 
 export function deleteMedicalTermByAdmin(

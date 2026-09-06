@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserRole } from "@/types/auth";
-import { Keyboard as KeyboardIcon } from "lucide-react";
+import { Users, BookOpen } from "lucide-react";
 import { startTrainingSession } from "@/utils/trainingSession";
 import { TRAINING_DURATION_MINUTES } from "@/config/auth";
+import { Logo } from "@/components/layout/Logo";
 
 interface SessionData {
   authenticated: boolean;
@@ -110,6 +111,14 @@ export default function DashboardPage({ params }: PageProps) {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      router.replace("/login");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -143,15 +152,33 @@ export default function DashboardPage({ params }: PageProps) {
   const progressPercent = progressData ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--ock-app-bg)] dark:bg-gray-900 transition-colors duration-300">
       {/* Header */}
       <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm px-6 py-4 transition-colors duration-300">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <KeyboardIcon className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
-            <h1 className="text-2xl font-bold font-mono text-gray-900 dark:text-white">
-              Blind Typing Tutor
+            <Logo height={28} />
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+              OCK - Tastatutor
             </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            {sessionData.user?.role === "admin" && (
+              <button
+                onClick={() => router.push("/admin/users")}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                title="Benutzerverwaltung"
+                aria-label="Benutzerverwaltung"
+              >
+                <Users size={20} />
+              </button>
+            )}
+            <button
+              onClick={() => void handleLogout()}
+              className="px-3 py-1.5 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              Abmelden
+            </button>
           </div>
         </div>
       </header>
@@ -164,12 +191,12 @@ export default function DashboardPage({ params }: PageProps) {
             Hallo, {sessionData.user?.username}! 👋
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400">
-            Willkommen zu deiner persönlichen Lernplattform für Blind Typing
+            Willkommen zu deiner persönlichen Lernplattform für blindes Tastschreiben
           </p>
         </div>
 
         {/* Training Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-colors duration-300">
+        <div className="ock-card p-8 mb-8">
           <div className="mb-6">
             <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
               {TRAINING_DURATION_MINUTES}-Minuten Training
@@ -218,7 +245,7 @@ export default function DashboardPage({ params }: PageProps) {
         </div>
 
         {/* Progress Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-300">
+        <div className="ock-card p-6 mb-8">
           <h3 className="text-xs font-bold tracking-widest uppercase text-gray-500 dark:text-gray-400 mb-4">
             Ihr Lernfortschritt
           </h3>
@@ -277,7 +304,7 @@ export default function DashboardPage({ params }: PageProps) {
 
         {/* Statistics Cards */}
         {statisticsData && statisticsData.ok && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-300">
+          <div className="ock-card p-6 mb-8">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               📈 Letzte 7 Tage
             </h3>
@@ -377,36 +404,54 @@ export default function DashboardPage({ params }: PageProps) {
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-300">
+        <div className="ock-card p-6 mb-8">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
             👤 Benutzername
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            Deine persönliche Lernplattform für Blind Typing
+            Deine persönliche Lernplattform für blindes Tastschreiben
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-500">
             Benutzername: <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">{sessionData.user?.username}</span>
           </p>
         </div>
 
-        {/* Admin Links */}
+        {/* Admin Quick Access */}
         {sessionData.user?.role === "admin" && (
-          <div className="mt-8 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              👨‍💼 Administration
-            </h3>
+          <div className="mb-8">
+            <h3 className="ock-section-heading mb-3">Administration</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
                 onClick={() => router.push("/admin/users")}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                className="ock-card p-5 flex items-center gap-4 text-left hover:shadow-xl transition-shadow"
               >
-                Benutzerverwaltung
+                <span className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--ock-red-light)] text-[var(--ock-red)]">
+                  <Users size={20} />
+                </span>
+                <span>
+                  <span className="block font-semibold text-gray-900 dark:text-white">
+                    Benutzerverwaltung
+                  </span>
+                  <span className="block text-sm text-gray-500 dark:text-gray-400">
+                    Benutzer anlegen, Rollen vergeben
+                  </span>
+                </span>
               </button>
               <button
                 onClick={() => router.push("/admin/medical-terms")}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                className="ock-card p-5 flex items-center gap-4 text-left hover:shadow-xl transition-shadow"
               >
-                Fachbegriffe verwalten
+                <span className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--ock-red-light)] text-[var(--ock-red)]">
+                  <BookOpen size={20} />
+                </span>
+                <span>
+                  <span className="block font-semibold text-gray-900 dark:text-white">
+                    Fachbegriffe verwalten
+                  </span>
+                  <span className="block text-sm text-gray-500 dark:text-gray-400">
+                    Medizinische Begriffe pflegen
+                  </span>
+                </span>
               </button>
             </div>
           </div>
@@ -417,12 +462,12 @@ export default function DashboardPage({ params }: PageProps) {
       <footer className="mt-16 border-t border-gray-200 dark:border-gray-700 py-6 px-6">
         <div className="max-w-4xl mx-auto text-center text-sm text-gray-600 dark:text-gray-400">
           <p>
-            © 2024 Blind Typing Tutor -{" "}
+            © 2024 OCK - Tastatutor -{" "}
             <button
-              onClick={() => router.push("/login")}
-              className="text-indigo-600 dark:text-indigo-400 hover:underline"
+              onClick={() => void handleLogout()}
+              className="ock-link hover:underline"
             >
-              Logout
+              Abmelden
             </button>
           </p>
         </div>

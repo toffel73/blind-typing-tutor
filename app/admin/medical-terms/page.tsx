@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { MedicalTermsManager } from "./MedicalTermsManager";
 import { getSessionUser } from "@/server/authService";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
 
 export default async function AdminMedicalTermsPage() {
   const cookieStore = await cookies();
@@ -16,9 +17,9 @@ export default async function AdminMedicalTermsPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-start justify-center bg-gray-50 dark:bg-gray-900 px-4 py-20">
+    <AdminPageShell>
       <MedicalTermsManager />
-    </div>
+    </AdminPageShell>
   );
 }
 

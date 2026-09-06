@@ -2,7 +2,7 @@ import type { TranslationKeys } from "./types";
 import type { LanguageCode } from "../types/keyboard";
 
 export const translations = {
-  title: "Gia Sư Đánh Máy Mù",
+  title: "OCK - Tastatutor",
   practice: "Luyện Tập",
   beginner: "Người Mới Bắt Đầu",
   custom: "Tùy Chỉnh",
