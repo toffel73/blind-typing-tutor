@@ -2,7 +2,7 @@ import type { TranslationKeys } from "./types";
 import type { LanguageCode } from "../types/keyboard";
 
 export const translations = {
-  title: "Tutor Mengetik Buta",
+  title: "OCK - Tastatutor",
   practice: "Latihan",
   beginner: "Pemula",
   custom: "Kustom",

@@ -2,7 +2,7 @@ import type { TranslationKeys } from "./types";
 import type { LanguageCode } from "../types/keyboard";
 
 export const translations = {
-  title: "Trenér Slepého Psaní",
+  title: "OCK - Tastatutor",
   practice: "Cvičení",
   beginner: "Začátečník",
   custom: "Vlastní",

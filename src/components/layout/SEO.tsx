@@ -64,7 +64,7 @@ export function SEO({
   useEffect(() => {
     // Ensure title is never empty - use fallback if needed
     const finalTitle =
-      title?.trim() || "Blind Typing Tutor - Master Touch Typing Online";
+      title?.trim() || "OCK - Tastatutor";
     const finalDescription =
       description?.trim() ||
       "Master touch typing with our free online blind typing tutor. Practice on 28+ keyboard layouts in multiple languages.";
@@ -201,7 +201,7 @@ export function SEO({
       ogSiteName.setAttribute("property", "og:site_name");
       document.head.appendChild(ogSiteName);
     }
-    ogSiteName.setAttribute("content", "Blind Typing Tutor");
+    ogSiteName.setAttribute("content", "OCK - Tastatutor");
 
     // Open Graph Locale
     let ogLocale = document.querySelector('meta[property="og:locale"]');
@@ -270,7 +270,7 @@ export function SEO({
       },
       publisher: {
         "@type": "Organization",
-        name: "Blind Typing Tutor",
+        name: "OCK - Tastatutor",
         url: baseUrl,
       },
       aggregateRating: {
@@ -334,7 +334,7 @@ export function SEO({
             },
             publisher: {
               "@type": "Organization",
-              name: "Blind Typing Tutor",
+              name: "OCK - Tastatutor",
               url: baseUrl,
             },
             about: {

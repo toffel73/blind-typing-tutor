@@ -163,6 +163,39 @@ function normalizeRole(role: string | undefined): UserRole {
   return role === "admin" ? "admin" : "user";
 }
 
+/**
+ * Reads the public registration invite code exclusively from the server-side
+ * environment variable REGISTRATION_INVITE_CODE. Never expose this value to
+ * the client, log it, or persist it anywhere (including SQLite).
+ */
+function getRegistrationInviteCode(): string | null {
+  const code = process.env.REGISTRATION_INVITE_CODE;
+  return typeof code === "string" && code.length > 0 ? code : null;
+}
+
+/**
+ * Public (unauthenticated) registration is only available when a non-empty
+ * REGISTRATION_INVITE_CODE is configured on the server.
+ */
+export function isPublicRegistrationEnabled(): boolean {
+  return getRegistrationInviteCode() !== null;
+}
+
+/**
+ * Compares a candidate invite code against REGISTRATION_INVITE_CODE using a
+ * constant-time comparison. Both values are hashed to a fixed-length digest
+ * first so that timingSafeEqual never fails due to differing input lengths.
+ */
+export function verifyInviteCode(candidate: string): boolean {
+  const expected = getRegistrationInviteCode();
+  if (!expected || typeof candidate !== "string" || candidate.length === 0) {
+    return false;
+  }
+  const expectedHash = createHash("sha256").update(expected).digest();
+  const candidateHash = createHash("sha256").update(candidate).digest();
+  return timingSafeEqual(expectedHash, candidateHash);
+}
+
 function validateUsernameAndPassword(username: string, password: string) {
   const normalizedUsername = normalizeUsername(username);
   if (!normalizedUsername) {
@@ -229,7 +262,7 @@ export function registerUser(username: string, password: string, role: string | 
     .get(normalizedUsername) as { id: number } | undefined;
 
   if (existing) {
-    return { ok: false as const, message: "Benutzername existiert bereits." };
+    return { ok: false as const, message: "Dieser Benutzername ist bereits vergeben." };
   }
 
   const salt = createSalt();

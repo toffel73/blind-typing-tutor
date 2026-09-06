@@ -1,6 +1,6 @@
 {
-  "name": "Blind Typing Tutor - Free Touch Typing Trainer",
-  "short_name": "Typing Tutor",
+  "name": "OCK - Tastatutor",
+  "short_name": "Tastatutor",
   "description": "Master touch typing with 28+ keyboard layouts, 8 learning languages, real-time WPM tracking, accuracy stats, visual keyboard, and audio feedback. Free and open source.",
   "start_url": "/",
   "display": "standalone",
@@ -50,7 +50,7 @@
       "sizes": "1200x630",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Blind Typing Tutor Interface"
+      "label": "OCK - Tastatutor Interface"
     }
   ],
   "shortcuts": [

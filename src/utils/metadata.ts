@@ -11,7 +11,7 @@ import {
   INTERFACE_LANGUAGE_OPTIONS,
 } from "../config/constants";
 
-const DEFAULT_TITLE = "Blind Typing Tutor - Master Touch Typing Online";
+const DEFAULT_TITLE = "OCK - Tastatutor";
 const DEFAULT_DESCRIPTION = "Master touch typing with our free online blind typing tutor.";
 const OG_IMAGE = "/og-image.png";
 

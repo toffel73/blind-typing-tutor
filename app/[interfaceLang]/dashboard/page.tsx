@@ -150,7 +150,7 @@ export default function DashboardPage({ params }: PageProps) {
           <div className="flex items-center gap-3">
             <KeyboardIcon className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
             <h1 className="text-2xl font-bold font-mono text-gray-900 dark:text-white">
-              Blind Typing Tutor
+              OCK - Tastatutor
             </h1>
           </div>
         </div>
@@ -417,7 +417,7 @@ export default function DashboardPage({ params }: PageProps) {
       <footer className="mt-16 border-t border-gray-200 dark:border-gray-700 py-6 px-6">
         <div className="max-w-4xl mx-auto text-center text-sm text-gray-600 dark:text-gray-400">
           <p>
-            © 2024 Blind Typing Tutor -{" "}
+            © 2024 OCK - Tastatutor -{" "}
             <button
               onClick={() => router.push("/login")}
               className="text-indigo-600 dark:text-indigo-400 hover:underline"

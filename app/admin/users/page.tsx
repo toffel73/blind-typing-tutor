@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AdminUsersManager } from "./AdminUsersManager";
 import { getSessionUser } from "@/server/authService";
+
+export const metadata: Metadata = {
+  title: "Benutzerverwaltung | OCK - Tastatutor",
+};
 
 export default async function AdminUsersPage() {
   const cookieStore = await cookies();

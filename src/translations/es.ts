@@ -2,7 +2,7 @@ import type { TranslationKeys } from "./types";
 import type { LanguageCode } from "../types/keyboard";
 
 export const translations = {
-  title: "Entrenador de Mecanografía",
+  title: "OCK - Tastatutor",
   practice: "Práctica",
   beginner: "Principiante",
   custom: "Personalizado",

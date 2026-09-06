@@ -2,7 +2,7 @@ import type { TranslationKeys } from "./types";
 import type { LanguageCode } from "../types/keyboard";
 
 export const translations = {
-  title: "Blind Typen Trainer",
+  title: "OCK - Tastatutor",
   practice: "Oefenen",
   beginner: "Beginner",
   custom: "Aangepast",
