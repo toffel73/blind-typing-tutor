@@ -467,7 +467,7 @@ export default function DashboardPage({ params }: PageProps) {
               onClick={() => void handleLogout()}
               className="text-indigo-600 dark:text-indigo-400 hover:underline"
             >
-              Logout
+              Abmelden
             </button>
           </p>
         </div>
