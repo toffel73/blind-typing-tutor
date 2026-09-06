@@ -5,10 +5,29 @@
 
 :root {
   --bg-gradient: linear-gradient(-45deg, #fdfcf7, #f5d2dd, #c6eafa, #d0fff6);
+
+  /* OCK brand color system */
+  --ock-red: #e00a3a;
+  --ock-red-hover: #c40732;
+  --ock-red-light: #fdecef;
+  --ock-app-bg: #f5f6f8;
+  --ock-card-bg: #ffffff;
+  --ock-text: #1f2937;
+  --ock-text-muted: #6b7280;
+  --ock-border: #e5e7eb;
 }
 
 :root.dark {
   --bg-gradient: linear-gradient(-45deg, #1a1b26, #24283b, #1f2335, #16161e);
+
+  --ock-red: #f43f5e;
+  --ock-red-hover: #fb7185;
+  --ock-red-light: rgba(244, 63, 94, 0.12);
+  --ock-app-bg: #111827;
+  --ock-card-bg: #1f2937;
+  --ock-text: #f3f4f6;
+  --ock-text-muted: #9ca3af;
+  --ock-border: #374151;
 }
 
 body {
@@ -17,6 +36,64 @@ body {
   animation: gradient 15s ease infinite;
   font-family: "Inter", system-ui, sans-serif;
   color: #1f2937;
+}
+
+/* Shared OCK UI building blocks — reused across login, dashboard, learning
+   and admin pages so visual styling stays consistent in one place. */
+.ock-card {
+  background: var(--ock-card-bg);
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px -12px rgba(15, 23, 42, 0.15);
+}
+
+.ock-btn-primary {
+  background: var(--ock-red);
+  color: #ffffff;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.ock-btn-primary:hover:not(:disabled) {
+  background: var(--ock-red-hover);
+}
+
+.ock-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ock-link {
+  color: var(--ock-red);
+  font-weight: 500;
+}
+
+.ock-link:hover {
+  text-decoration: underline;
+}
+
+.ock-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--ock-border);
+  background: var(--ock-card-bg);
+  color: var(--ock-text);
+  padding: 0.65rem 0.9rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ock-input:focus {
+  outline: none;
+  border-color: var(--ock-red);
+  box-shadow: 0 0 0 3px var(--ock-red-light);
+}
+
+.ock-section-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ock-text-muted);
 }
 
 code,

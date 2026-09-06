@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import {
-  Keyboard as KeyboardIcon,
   Moon,
   Sun,
   Info,
@@ -13,6 +12,7 @@ import type { ContentType } from "../../utils/url";
 import { LandingOverlay } from "./LandingOverlay";
 import { AuthMenu } from "./AuthMenu";
 import { SessionTimer } from "./SessionTimer";
+import { Logo } from "./Logo";
 
 interface HeaderProps {
   title: string;
@@ -66,9 +66,9 @@ export const Header: React.FC<HeaderProps> = ({
           )}
           <h1
             data-testid="app-title"
-            className="text-xl font-bold text-gray-900 dark:text-white whitespace-nowrap transition-colors flex items-center gap-2 font-mono"
+            className="text-xl font-bold text-gray-900 dark:text-white whitespace-nowrap transition-colors flex items-center gap-2"
           >
-            <KeyboardIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <Logo height={22} />
             {title}
           </h1>
 

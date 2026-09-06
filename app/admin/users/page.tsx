@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AdminUsersManager } from "./AdminUsersManager";
 import { getSessionUser } from "@/server/authService";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
 
 export const metadata: Metadata = {
   title: "Benutzerverwaltung | OCK - Tastatutor",
@@ -22,8 +23,8 @@ export default async function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-start justify-center bg-gray-50 dark:bg-gray-900 px-4 py-20">
+    <AdminPageShell>
       <AdminUsersManager />
-    </div>
+    </AdminPageShell>
   );
 }

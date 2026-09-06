@@ -59,7 +59,7 @@ export function MedicalTermsManager() {
   }, [message]);
 
   return (
-    <div className="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
+    <div className="w-full max-w-3xl ock-card p-8">
       <div className="flex items-center justify-between gap-4 mb-4">
         <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Fachbegriffe</h1>
         {!isCreateOpen && (
