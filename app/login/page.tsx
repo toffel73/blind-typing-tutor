@@ -26,6 +26,7 @@ export default function LoginPage() {
   const [registerUsername, setRegisterUsername] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerPasswordConfirm, setRegisterPasswordConfirm] = useState("");
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
   const [registerMessage, setRegisterMessage] = useState<string | null>(null);
@@ -86,6 +87,7 @@ export default function LoginPage() {
         setRegisterUsername("");
         setRegisterPassword("");
         setRegisterPasswordConfirm("");
+        setShowRegisterPassword(false);
         setInviteCode("");
         switchMode("login");
         setMessage(data.message);
@@ -252,16 +254,27 @@ export default function LoginPage() {
                   >
                     Passwort
                   </label>
-                  <input
-                    id="register-password"
-                    type="password"
-                    value={registerPassword}
-                    onChange={(e) => setRegisterPassword(e.target.value)}
-                    placeholder="Passwort"
-                    className="ock-input"
-                    required
-                    autoComplete="new-password"
-                  />
+                  <div className="relative">
+                    <input
+                      id="register-password"
+                      type={showRegisterPassword ? "text" : "password"}
+                      value={registerPassword}
+                      onChange={(e) => setRegisterPassword(e.target.value)}
+                      placeholder="Passwort"
+                      className="ock-input pr-10"
+                      required
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegisterPassword((v) => !v)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 dark:text-gray-400"
+                      aria-label={showRegisterPassword ? "Passwort verbergen" : "Passwort anzeigen"}
+                      tabIndex={-1}
+                    >
+                      {showRegisterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -273,7 +286,7 @@ export default function LoginPage() {
                   </label>
                   <input
                     id="register-password-confirm"
-                    type="password"
+                    type={showRegisterPassword ? "text" : "password"}
                     value={registerPasswordConfirm}
                     onChange={(e) => setRegisterPasswordConfirm(e.target.value)}
                     placeholder="Passwort bestätigen"

@@ -12,7 +12,7 @@ import {
 } from "../config/constants";
 
 const DEFAULT_TITLE = "OCK - Tastatutor";
-const DEFAULT_DESCRIPTION = "Master touch typing with our free online blind typing tutor.";
+const DEFAULT_DESCRIPTION = "OCK - Tastatutor: Master touch typing with our free online blind typing tutor.";
 const OG_IMAGE = "/og-image.png";
 
 interface MetadataOptions {
