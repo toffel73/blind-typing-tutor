@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser, listMedicalTermsForTraining } from "@/server/authService";
+import { getSessionUser, selectMedicalTermsForUserTraining } from "@/server/authService";
 
 export const runtime = "nodejs";
 
@@ -14,6 +14,6 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ terms: listMedicalTermsForTraining() });
+  return NextResponse.json({ terms: selectMedicalTermsForUserTraining(sessionUser.id) });
 }
 

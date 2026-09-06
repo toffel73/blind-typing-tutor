@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = (await request.json()) as { term?: string };
-    const result = addMedicalTermByAdmin(body.term ?? "");
+    const body = (await request.json()) as { term?: string; difficulty?: unknown };
+    const result = addMedicalTermByAdmin(body.term ?? "", body.difficulty);
     return NextResponse.json(result, { status: result.ok ? 200 : 400 });
   } catch {
     return NextResponse.json(
