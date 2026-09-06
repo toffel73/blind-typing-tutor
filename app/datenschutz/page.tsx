@@ -71,7 +71,7 @@ export default async function PrivacyPage() {
         <p>Bei der Nutzung können insbesondere folgende Daten verarbeitet werden:</p>
         <ul>
           <li>Benutzername, Benutzerrolle und Kontostatus,</li>
-          <li>gesalzener und kryptografisch abgeleiteter Passwort-Hash,</li>
+          <li>sicherer kryptografischer Hashwert des Passworts,</li>
           <li>absolvierte Trainingseinheiten und aktive Lernzeiten,</li>
           <li>Schreibgeschwindigkeit, Genauigkeit und Fehlerzahl,</li>
           <li>Anzahl bearbeiteter und richtig geschriebener Wörter,</li>
@@ -79,9 +79,10 @@ export default async function PrivacyPage() {
           <li>technisch erforderliche Sitzungs- und Sicherheitsdaten.</li>
         </ul>
         <p>
-          Passwörter werden nicht im Klartext gespeichert. Es werden keine
-          Patientendaten, medizinischen Befunde oder Gesundheitsdaten der
-          Beschäftigten verarbeitet.
+          Passwörter werden ausschließlich in kryptografisch geschützter Form
+          und niemals im Klartext gespeichert. Es werden keine Patientendaten,
+          medizinischen Befunde oder Gesundheitsdaten der Beschäftigten
+          verarbeitet.
         </p>
       </section>
 
@@ -185,7 +186,7 @@ export default async function PrivacyPage() {
           Zum Schutz der Daten werden angemessene technische und
           organisatorische Sicherheitsmaßnahmen eingesetzt. Hierzu gehören
           insbesondere eine verschlüsselte Übertragung, zugangsgeschützte
-          Benutzerkonten, kryptografisch abgeleitete Passwort-Hashes und eine
+          Benutzerkonten, sicher gespeicherte Passwort-Hashwerte und eine
           Beschränkung administrativer Berechtigungen.
         </p>
       </section>
