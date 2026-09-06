@@ -22,13 +22,23 @@ export async function POST(request: NextRequest) {
       wpm: number;
       accuracy: number;
       errors: number;
+      attemptedWords?: number;
+      correctWords?: number;
       currentLesson?: number;
     };
 
-    const { startedAt, endedAt, activeLearningTimeMs, wpm, accuracy, errors, currentLesson } = body;
+    const {
+      startedAt, endedAt, activeLearningTimeMs, wpm, accuracy, errors,
+      attemptedWords = 0, correctWords = 0, currentLesson,
+    } = body;
 
     // Validate inputs
-    if (typeof startedAt !== "number" || typeof endedAt !== "number" || typeof activeLearningTimeMs !== "number") {
+    if (
+      typeof startedAt !== "number" || typeof endedAt !== "number" ||
+      typeof activeLearningTimeMs !== "number" ||
+      !Number.isFinite(attemptedWords) || !Number.isFinite(correctWords) ||
+      attemptedWords < 0 || correctWords < 0 || correctWords > attemptedWords
+    ) {
       return NextResponse.json(
         { ok: false, message: "Ungültige Eingabeparameter." },
         { status: 400 }
@@ -43,6 +53,8 @@ export async function POST(request: NextRequest) {
       wpm,
       accuracy,
       errors,
+      Math.floor(attemptedWords),
+      Math.floor(correctWords),
       currentLesson
     );
 

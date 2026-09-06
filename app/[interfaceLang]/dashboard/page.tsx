@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { UserRole } from "@/types/auth";
 import { Users, BookOpen } from "lucide-react";
 import { startTrainingSession } from "@/utils/trainingSession";
 import { TRAINING_DURATION_MINUTES } from "@/config/auth";
 import { Logo } from "@/components/layout/Logo";
+import { ProgressCharts, type WeeklyTrainingStat } from "@/components/dashboard/ProgressCharts";
+import type { LearningLevel } from "@/data/keyboardTraining";
 
 interface SessionData {
   authenticated: boolean;
@@ -24,6 +27,9 @@ interface ProgressData {
   totalLessons: number;
   nextLessonId: number | null;
   nextLessonTitle: string | null;
+  learningLevel: LearningLevel;
+  learningLevelLabel: string;
+  eliteUnlocked: boolean;
 }
 
 interface StatisticsData {
@@ -33,9 +39,16 @@ interface StatisticsData {
   totalErrors: number;
   sessionCount: number;
   dailyStats: Array<{ date: string; learningTimeMs: number }>;
+  weeklyStats: WeeklyTrainingStat[];
 }
 
-const TOTAL_LESSONS = 15;
+const TOTAL_LESSONS = 45;
+const LEVELS: Array<{ id: LearningLevel; label: string; range: string }> = [
+  { id: "beginner", label: "Beginner", range: "Lektionen 1–15" },
+  { id: "advanced", label: "Advanced", range: "Lektionen 16–30" },
+  { id: "professional", label: "Professional", range: "Lektionen 31–45" },
+  { id: "elite", label: "Elite", range: "Fortlaufendes Training" },
+];
 
 interface PageProps {
   params: Promise<{
@@ -147,8 +160,9 @@ export default function DashboardPage({ params }: PageProps) {
   }
 
   const totalLessons = progressData?.totalLessons ?? TOTAL_LESSONS;
-  const completedLessons = progressData ? progressData.currentKeyboardLesson - 1 : 0;
-  const remainingLessons = progressData ? totalLessons - progressData.currentKeyboardLesson : 0;
+  const isElite = progressData?.eliteUnlocked ?? false;
+  const completedLessons = progressData ? Math.min(progressData.currentKeyboardLesson - 1, totalLessons) : 0;
+  const remainingLessons = progressData ? Math.max(0, totalLessons - completedLessons) : 0;
   const progressPercent = progressData ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
   return (
@@ -256,7 +270,7 @@ export default function DashboardPage({ params }: PageProps) {
                   Aktuelle Lektion
                 </p>
                 <div className="text-xl font-bold text-gray-900 dark:text-white">
-                  Lektion {progressData.currentKeyboardLesson} von {totalLessons}
+                  {isElite ? "Elite-Training freigeschaltet" : `Lektion ${progressData.currentKeyboardLesson} von ${totalLessons}`}
                 </div>
                 <div className="text-base text-indigo-600 dark:text-indigo-400 font-medium">
                   {progressData.lessonTitle}
@@ -293,6 +307,23 @@ export default function DashboardPage({ params }: PageProps) {
                     <div className="text-gray-500 dark:text-gray-400">Noch vor Ihnen</div>
                   </div>
                 )}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-3" aria-label="Lernstufen">
+                {LEVELS.map((level) => {
+                  const active = progressData.learningLevel === level.id;
+                  const levelOrder = LEVELS.findIndex((item) => item.id === progressData.learningLevel);
+                  const complete = LEVELS.findIndex((item) => item.id === level.id) < levelOrder;
+                  return (
+                    <div
+                      key={level.id}
+                      className={`rounded-xl border p-3 ${active ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30" : complete ? "border-green-300 bg-green-50 dark:bg-green-950/20" : "border-gray-200 dark:border-gray-700"}`}
+                    >
+                      <div className="text-xs text-gray-500">{complete ? "✓ Abgeschlossen" : active ? "Aktuelle Stufe" : "Als Nächstes"}</div>
+                      <div className="font-semibold text-gray-900 dark:text-white">{level.label}</div>
+                      <div className="text-xs text-gray-500">{level.range}</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : (
@@ -401,6 +432,11 @@ export default function DashboardPage({ params }: PageProps) {
                 </div>
               </div>
             )}
+            <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Deine Entwicklung</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Die letzten zwölf Lernwochen – nur für dich sichtbar.</p>
+              <ProgressCharts weeks={statisticsData.weeklyStats ?? []} />
+            </div>
           </div>
         )}
 
@@ -461,8 +497,17 @@ export default function DashboardPage({ params }: PageProps) {
       {/* Footer */}
       <footer className="mt-16 border-t border-gray-200 dark:border-gray-700 py-6 px-6">
         <div className="max-w-4xl mx-auto text-center text-sm text-gray-600 dark:text-gray-400">
-          <p>
-            © 2024 OCK - Tastatutor -{" "}
+          <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+            <span>© {new Date().getFullYear()} OCK – Tastatutor</span>
+            <span aria-hidden="true">·</span>
+            <Link href="/impressum" className="ock-link">
+              Impressum
+            </Link>
+            <span aria-hidden="true">·</span>
+            <Link href="/datenschutz" className="ock-link">
+              Datenschutz
+            </Link>
+            <span aria-hidden="true">·</span>
             <button
               onClick={() => void handleLogout()}
               className="ock-link hover:underline"

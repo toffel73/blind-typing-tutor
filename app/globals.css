@@ -96,6 +96,111 @@ body {
   color: var(--ock-text-muted);
 }
 
+.legal-page {
+  background-image:
+    radial-gradient(circle at 10% 10%, var(--ock-red-light), transparent 28rem),
+    linear-gradient(180deg, var(--ock-app-bg), color-mix(in srgb, var(--ock-app-bg) 94%, white));
+}
+
+.legal-document {
+  border: 1px solid var(--ock-border);
+}
+
+.legal-document-heading {
+  position: relative;
+  border-bottom: 1px solid var(--ock-border);
+  background: linear-gradient(135deg, var(--ock-card-bg), var(--ock-red-light));
+}
+
+.legal-document-heading::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.3rem;
+  background: var(--ock-red);
+  content: "";
+}
+
+.legal-content section {
+  position: relative;
+  margin-bottom: 1rem;
+  padding: 1.25rem 1.25rem 1.1rem;
+  border: 1px solid var(--ock-border);
+  border-radius: 0.875rem;
+  background: color-mix(in srgb, var(--ock-card-bg) 97%, var(--ock-red-light));
+}
+
+.legal-content section:last-of-type {
+  margin-bottom: 1.5rem;
+}
+
+.legal-content h2 {
+  margin-bottom: 0.8rem;
+  color: var(--ock-text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.legal-content p,
+.legal-content address,
+.legal-content ul {
+  margin-bottom: 0.875rem;
+  line-height: 1.75;
+}
+
+.legal-content section > :last-child {
+  margin-bottom: 0;
+}
+
+.legal-content address {
+  font-style: normal;
+}
+
+.legal-content ul {
+  list-style: disc;
+  padding-left: 1.35rem;
+}
+
+.legal-content li {
+  margin-bottom: 0.3rem;
+  padding-left: 0.2rem;
+}
+
+.legal-content li::marker {
+  color: var(--ock-red);
+}
+
+.legal-content a {
+  color: var(--ock-red);
+  font-weight: 500;
+}
+
+.legal-content a:hover {
+  text-decoration: underline;
+}
+
+.legal-nav-link {
+  border-radius: 9999px;
+  border: 1px solid var(--ock-border);
+  background: var(--ock-card-bg);
+  color: var(--ock-text-muted);
+  padding: 0.5rem 0.9rem;
+  font-weight: 600;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.legal-nav-link:hover {
+  border-color: var(--ock-red);
+  background: var(--ock-red-light);
+  color: var(--ock-red);
+}
+
+@media (max-width: 640px) {
+  .legal-content section {
+    padding: 1rem;
+  }
+}
+
 code,
 pre,
 .font-mono {

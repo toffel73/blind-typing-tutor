@@ -15,6 +15,7 @@ import { KeyFeedbackIndicator } from "./game/KeyFeedbackIndicator";
 import type { LanguageCode } from "../types/keyboard";
 import type { TranslationKeys } from "../translations";
 import type { SessionTrainingPhase } from "@/utils/sessionTraining";
+import { getLearningLevelForLesson, learningLevelLabels } from "@/data/keyboardTraining";
 
 interface GameProps {
   mode: "practice" | "beginner" | "custom";
@@ -36,7 +37,13 @@ interface GameProps {
   sessionTrainingPhase?: SessionTrainingPhase;
   sessionTrainingPhaseLabel?: string;
   isTrainingPaused?: boolean;
-  onStatsChange?: (stats: { wpm: number; accuracy: number; errors: number }) => void;
+  onStatsChange?: (stats: {
+    wpm: number;
+    accuracy: number;
+    errors: number;
+    attemptedWords: number;
+    correctWords: number;
+  }) => void;
 }
 
 export const Game: React.FC<GameProps> = ({
@@ -72,6 +79,8 @@ export const Game: React.FC<GameProps> = ({
     activeKey,
     currentKeyboardLesson,
     keyFeedbackEvent,
+    attemptedWords,
+    correctWords,
     customText,
     setCustomText,
     isCustomSetup,
@@ -81,8 +90,8 @@ export const Game: React.FC<GameProps> = ({
 
   // Forward live stats to parent so it can save them on training end
   useEffect(() => {
-    onStatsChange?.({ wpm, accuracy, errors });
-  }, [wpm, accuracy, errors, onStatsChange]);
+    onStatsChange?.({ wpm, accuracy, errors, attemptedWords, correctWords });
+  }, [wpm, accuracy, errors, attemptedWords, correctWords, onStatsChange]);
 
   const currentLayout = useMemo(() => getLayout(layoutId), [layoutId]);
   const shouldShowHints = currentLayout.language !== learningLanguage;
@@ -125,8 +134,11 @@ export const Game: React.FC<GameProps> = ({
         </div>
       )}
       {sessionTrainingPhase === "phase1" && (
-        <div className="w-full max-w-4xl mb-3 text-sm text-gray-600 dark:text-gray-300">
-          Lektion {currentKeyboardLesson.id} · {currentKeyboardLesson.title}
+        <div className="w-full max-w-4xl mb-3 flex items-center justify-between gap-3 text-sm text-gray-600 dark:text-gray-300">
+          <span>{currentKeyboardLesson.id <= 45 ? `Lektion ${currentKeyboardLesson.id} · ` : ""}{currentKeyboardLesson.title}</span>
+          <span className="rounded-full bg-violet-100 px-3 py-1 font-semibold text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
+            {learningLevelLabels[getLearningLevelForLesson(currentKeyboardLesson.id)]}
+          </span>
         </div>
       )}
 

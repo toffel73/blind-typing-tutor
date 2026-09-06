@@ -165,6 +165,24 @@ export function AuthMenu() {
                 )}
                 <button
                   onClick={() => {
+                    setIsMenuOpen(false);
+                    router.push("/impressum");
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  Impressum
+                </button>
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    router.push("/datenschutz");
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  Datenschutz
+                </button>
+                <button
+                  onClick={() => {
                     void logout();
                   }}
                   disabled={isLoading}

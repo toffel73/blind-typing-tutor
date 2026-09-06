@@ -30,11 +30,15 @@ export function useTypingEngine({
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const completionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pauseStartedAtRef = useRef<number | null>(null);
 
   // Stats State
   const [startTime, setStartTime] = useState<number | null>(null);
   const [errors, setErrors] = useState(0);
   const [totalTyped, setTotalTyped] = useState(0);
+  const [attemptedWords, setAttemptedWords] = useState(0);
+  const [correctWords, setCorrectWords] = useState(0);
+  const wordErrorIndexesRef = useRef<Set<number>>(new Set());
   const [wpm, setWpm] = useState(0);
   const [accuracy, setAccuracy] = useState(100);
   const [lastPressedKey, setLastPressedKey] = useState<string | null>(null);
@@ -43,6 +47,18 @@ export function useTypingEngine({
   const [medicalTrainingTerms, setMedicalTrainingTerms] = useState<string[]>(medicalTerms);
   const [currentKeyboardLessonId, setCurrentKeyboardLessonId] = useState(1);
   const [isKeyboardLessonReady, setIsKeyboardLessonReady] = useState(false);
+
+  useEffect(() => {
+    if (isTrainingPaused) {
+      pauseStartedAtRef.current ??= Date.now();
+      return;
+    }
+    if (pauseStartedAtRef.current !== null) {
+      const pauseDuration = Date.now() - pauseStartedAtRef.current;
+      setStartTime((previous) => previous === null ? null : previous + pauseDuration);
+      pauseStartedAtRef.current = null;
+    }
+  }, [isTrainingPaused]);
 
   // Generator
   const generator = useMemo(() => new Generator(language), [language]);
@@ -90,11 +106,7 @@ export function useTypingEngine({
       setInput("");
     }
 
-    setStartTime(null);
-    setErrors(0);
-    setTotalTyped(0);
-    setWpm(0);
-    setAccuracy(100);
+    wordErrorIndexesRef.current.clear();
     // Defer focus to ensure DOM is ready
     setTimeout(() => inputRef.current?.focus(), 0);
   }, [
@@ -108,7 +120,6 @@ export function useTypingEngine({
   ]);
 
   // Initialize text when mode or language changes
-  /* eslint-disable react-hooks/set-state-in-effect -- intentional mode/language initialization */
   useEffect(() => {
     if (sessionTrainingPhase) {
       setIsCustomSetup(false);
@@ -144,7 +155,6 @@ export function useTypingEngine({
       isInitialMountRef.current = false;
     }
   }, [mode, language, generateText, sessionTrainingPhase, isKeyboardLessonReady]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (sessionTrainingPhase !== "phase1") {
@@ -263,6 +273,8 @@ export function useTypingEngine({
       setTotalTyped((prev) => prev + 1);
 
       if (typedChar !== expectedChar) {
+        const wordIndex = text.slice(0, lastCharIndex).trim().split(/\s+/).filter(Boolean).length;
+        wordErrorIndexesRef.current.add(wordIndex);
         triggerKeyFeedback("incorrect");
         soundManager.playError();
         setErrors((prev) => {
@@ -281,18 +293,16 @@ export function useTypingEngine({
       }
     } else if (val.length < input.length) {
       // Backspace
-      let currentErrors = 0;
-      for (let i = 0; i < val.length; i++) {
-        if (val[i] !== text[i]) currentErrors++;
-      }
-      setErrors(currentErrors);
-      setAccuracy(val.length > 0 ? Math.max(0, ((val.length - currentErrors) / val.length) * 100) : 100);
-      setTotalTyped(val.length);
+      // Session statistics remain cumulative; deleting a character does not
+      // erase a typing attempt that already happened.
     }
 
     setInput(val);
 
     if (val.length === text.length) {
+      const wordsInBlock = text.trim().split(/\s+/).filter(Boolean).length;
+      setAttemptedWords((previous) => previous + wordsInBlock);
+      setCorrectWords((previous) => previous + Math.max(0, wordsInBlock - wordErrorIndexesRef.current.size));
       if (completionTimeoutRef.current) clearTimeout(completionTimeoutRef.current);
       completionTimeoutRef.current = setTimeout(() => {
         generateText();
@@ -362,6 +372,7 @@ export function useTypingEngine({
   return {
     text, input, setInput, inputRef,
     startTime, errors, totalTyped, wpm, accuracy,
+    attemptedWords, correctWords,
     lastPressedKey, activeKey,
     currentKeyboardLesson,
     keyFeedbackEvent,
